@@ -41,10 +41,11 @@ jobs:
 
       - name: Build libs
         run: |
-          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<EOF
+          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
           set -e
+          export CC=/bin/gcc
+          export CXX=/bin/g++
           cd /Data/ponyc
-          export CC=gcc CXX=g++
           cmake -DTOOLS=false -DJOBS=4 -DCMAKE_C_COMPILER="$CC" -DCMAKE_CXX_COMPILER="$CXX" -P lib/build-libs.cmake
           rm -rf build/build_libs
           EOF
@@ -53,8 +54,8 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
           set -e
-          export CC=gcc
-          export CXX=g++
+          export CC=/bin/gcc
+          export CXX=/bin/g++
           cd /Data/ponyc
           cmake --preset debug -DCMAKE_C_COMPILER="$CC" -DCMAKE_CXX_COMPILER="$CXX"
           cmake --build --preset debug

@@ -25,14 +25,14 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Get ponyc
-        run: git clone --depth 1 --single-branch --branch haiku https://github.com/ahwayakchih/ponyc.git
+        run: git clone --depth 1 --single-branch --branch haiku https://github.com/ahwayakchih/ponyc.git && ls -la
 
       - name: Switch to ponyc as GITHUB_WORKSPACE
         run: echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}/ponyc" >> $GITHUB_ENV
 
       # Runs a set of commands using the runners shell
       - name: Provision VM
-        run: bash .ci-scripts/haiku/haiku-provision.bash
+        run: cd ponyc && bash .ci-scripts/haiku/haiku-provision.bash
 
       - name: Build libs
         run: |

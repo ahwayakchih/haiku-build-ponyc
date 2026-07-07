@@ -36,7 +36,7 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: Provision VM
         run: |
-          echo GITHUB_WORKSPACE is: "${GITHUB_WORKSPACE}"
+          echo GITHUB_WORKSPACE is: "$GITHUB_WORKSPACE"
           cd ponyc && bash .ci-scripts/haiku/haiku-provision.bash
 
       - name: Build libs

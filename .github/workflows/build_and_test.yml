@@ -1,0 +1,68 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: [ "main" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+
+      # Runs a single command using the runners shell
+      - name: Get ponyc
+        run: git clone --depth 1 --single-branch --branch haiku https://github.com/ahwayakchih/ponyc.git
+
+      - name: Switch to ponyc as GITHUB_WORKSPACE
+        run: echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}/ponyc" >> $GITHUB_ENV
+
+      # Runs a set of commands using the runners shell
+      - name: Provision VM
+        run: bash .ci-scripts/haiku/haiku-provision.bash
+
+      - name: Build libs
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<EOF
+          set -e
+          cd /Data/ponyc
+          export CC=gcc CXX=g++
+          cmake -DTOOLS=false -DJOBS=4 -DCMAKE_C_COMPILER="$CC" -DCMAKE_CXX_COMPILER="$CXX" -P lib/build-libs.cmake
+          rm -rf build/build_libs
+          EOF
+
+      - name: Build and test
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
+          set -e
+          export CC=gcc
+          export CXX=g++
+          cd /Data/ponyc
+          cmake --preset debug -DCMAKE_C_COMPILER="$CC" -DCMAKE_CXX_COMPILER="$CXX"
+          cmake --build --preset debug
+          cmake --build --preset debug --target pony-doc-tests pony-lint-tests pony-lsp-tests
+          ctest --preset debug -L ci-core
+          ctest --preset debug -R pony-doc-tests
+          ctest --preset debug -R pony-lint-tests
+          ctest --preset debug -R pony-lsp-tests
+          cmake --preset release -DCMAKE_C_COMPILER="$CC" -DCMAKE_CXX_COMPILER="$CXX"
+          cmake --build --preset release
+          ctest --preset release -L ci-core
+          EOF
+      - name: Shutdown VM
+        if: always()
+        run: |
+          pkill -f qemu-system-x86 || true

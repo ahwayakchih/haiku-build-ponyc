@@ -107,7 +107,7 @@ jobs:
           export GITHUB_TOKEN='${GITHUB_TOKEN}' GITHUB_REPOSITORY='${GITHUB_REPOSITORY}' GITHUB_ACTOR='${GITHUB_ACTOR}'
           mkdir -p build/libs || true
           touch build/libs/fake_lib_for_testing || true
-          python3 .ci-scripts/libs-cache/branch_libs_cache.py push --platform haiku --tag '${LIBS_TAG}' || echo '::warning::haiku branch libs cache push failed, will rebuild next run'"
+          python3 .ci-scripts/libs-cache/branch_libs_cache.py push --platform haiku --tag '${LIBS_TAG}' || echo '::warning::haiku branch libs cache push failed, will rebuild next run'
           REMOTE
 
       - name: Build and test

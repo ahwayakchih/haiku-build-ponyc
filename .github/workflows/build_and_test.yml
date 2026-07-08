@@ -98,7 +98,7 @@ jobs:
       # Our own cache of libs
       - name: Restore libs.zip from our own cache
         id: libs-cache
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: libs.zip
           key: ${{ hashFiles('haiku_libs_tag.source') }}
@@ -144,6 +144,13 @@ jobs:
             zip -r -y /boot/home/Desktop/libs.zip build/libs lib/llvm/src/compiler-rt/lib/builtins
           EOF
           scp -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -P 2222 user@localhost:/boot/home/Desktop/libs.zip ./libs.zip
+
+      - name: Store libs.zip in our custom cache
+        if: ${{ steps.libs-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: libs.zip
+          key: ${{ steps.libs-cache.outputs.cache-primary-key }}
 
       - name: Build and test
         run: |

@@ -74,7 +74,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LIBS_TAG: ${{ hashFiles('ponyc/lib/CMakePresets.json', 'ponyc/CMakeLists.txt', 'ponyc/lib/CMakeLists.txt', 'ponyc/lib/build-libs.cmake', 'ponyc/lib/llvm/patches/*') }}
-        run: cd ponyc && bash .ci-scripts/haiku/haiku-libs-cache.bash restore
+        run: bash ponyc/.ci-scripts/haiku/haiku-libs-cache.bash restore
 
       - name: Build libs
         if: ${{ hashFiles('ponyc/.libs-cache-miss') != '' || steps.check.outputs.hit == 'false' }}
@@ -83,7 +83,7 @@ jobs:
           LIBS_TAG: ${{ hashFiles('ponyc/lib/CMakePresets.json', 'ponyc/CMakeLists.txt', 'ponyc/lib/CMakeLists.txt', 'ponyc/lib/build-libs.cmake', 'ponyc/lib/llvm/patches/*') }}
         # When off main and the libs aren't cached, build LLVM in the VM (hours)
         # and push it to the branch cache, so a re-dispatch reuses the build.
-        run: cd ponyc && bash .ci-scripts/haiku/haiku-libs-cache.bash build-push-branch
+        run: bash ponyc/.ci-scripts/haiku/haiku-libs-cache.bash build-push-branch
 
       - name: Build and test
         if: ${{ hashFiles('ponyc/.libs-cache-miss') == '' }}

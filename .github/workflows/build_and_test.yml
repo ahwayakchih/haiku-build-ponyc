@@ -45,6 +45,7 @@ jobs:
             ponyc/lib/llvm/patches/* \
             >>haiku_libs_tag.source
 
+      # This step is from ponyc's workflow
       - name: Check libs cache
         id: check
         env:
@@ -85,6 +86,8 @@ jobs:
           export GITHUB_WORKSPACE=${GITHUB_WORKSPACE}/ponyc
           bash ponyc/.ci-scripts/haiku/haiku-provision.bash
 
+      # This step is from ponyc's workflow
+      # It will not restore anything, but tests to see if haiku-libs-cache.bash does not crash
       - name: Restore libs
         if: ${{ hashFiles('ponyc/.libs-cache-miss') == '' && steps.check.outputs.hit == 'true' }}
         env:
@@ -92,8 +95,30 @@ jobs:
           LIBS_TAG: ${{ hashFiles('haiku_libs_tag.source') }}
         run: bash ponyc/.ci-scripts/haiku/haiku-libs-cache.bash restore
 
+      # Our own cache of libs
+      - name: Restore libs.zip from our own cache
+        id: libs-cache
+        uses: actions/cache@v6
+        with:
+          path: libs.zip
+          key: ${{ hashFiles('haiku_libs_tag.source') }}
+
+      # Our own restore of libs
+      - name: Restore libs from libs.zip
+        if: ${{ steps.libs-cache.outputs.cache-hit == 'true' }}
+        run: |
+          set -e
+          scp -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -P 2222 ./libs.zip user@localhost:/boot/home/Desktop/libs.zip
+          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
+            set -e
+            cd /Data/ponyc
+            unzip /boot/home/Desktop/libs.zip
+          EOF
+
+      # This step is from ponyc's workflow
+      # It will build libs, but will not cache them, as that needs permission to store stuff in ghcr
       - name: Build libs
-        if: ${{ hashFiles('ponyc/.libs-cache-miss') != '' || steps.check.outputs.hit == 'false' }}
+        if: ${{ steps.libs-cache.outputs.cache-hit != 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LIBS_TAG: ${{ hashFiles('haiku_libs_tag.source') }}
@@ -101,31 +126,40 @@ jobs:
         # and push it to the branch cache, so a re-dispatch reuses the build.
         # run: bash ponyc/.ci-scripts/haiku/haiku-libs-cache.bash build-push-branch
         run: |
-          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<REMOTE
+          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
+            set -e
+            cd /Data/ponyc
+            mkdir -p build/libs
+            touch build/libs/fake_lib_file
+          EOF
+
+      # We keep our own libs cache
+      - name: Cache libs
+        if: ${{ steps.libs-cache.outputs.cache-hit != 'true' }}
+        run: |
           set -e
-          cd /Data/ponyc
-          export GITHUB_TOKEN='${GITHUB_TOKEN}' GITHUB_REPOSITORY='${GITHUB_REPOSITORY}' GITHUB_ACTOR='${GITHUB_ACTOR}'
-          mkdir -p build/libs || true
-          touch build/libs/fake_lib_for_testing || true
-          python3 .ci-scripts/libs-cache/branch_libs_cache.py push --platform haiku --tag '${LIBS_TAG}' || echo '::warning::haiku branch libs cache push failed, will rebuild next run'
-          REMOTE
+          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
+            set -e
+            cd /Data/ponyc
+            zip -r -y /boot/home/Desktop/libs.zip build/libs lib/llvm/src/compiler-rt/lib/builtins
+          EOF
+          scp -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -P 2222 user@localhost:/boot/home/Desktop/libs.zip ./libs.zip
 
       - name: Build and test
-        if: ${{ hashFiles('ponyc/.libs-cache-miss') != '' || steps.check.outputs.hit == 'false' }}
         run: |
           ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
-          set -e
-          cd /Data/ponyc
-          cmake --preset debug -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
-          cmake --build --preset debug
-          cmake --build --preset debug --target pony-doc-tests pony-lint-tests pony-lsp-tests
-          ctest --preset debug -L ci-core
-          ctest --preset debug -R pony-doc-tests
-          ctest --preset debug -R pony-lint-tests
-          ctest --preset debug -R pony-lsp-tests
-          cmake --preset release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
-          cmake --build --preset release
-          ctest --preset release -L ci-core
+            set -e
+            cd /Data/ponyc
+            cmake --preset debug -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+            cmake --build --preset debug
+            cmake --build --preset debug --target pony-doc-tests pony-lint-tests pony-lsp-tests
+            ctest --preset debug -L ci-core
+            ctest --preset debug -R pony-doc-tests
+            ctest --preset debug -R pony-lint-tests
+            ctest --preset debug -R pony-lsp-tests
+            cmake --preset release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+            cmake --build --preset release
+            ctest --preset release -L ci-core
           EOF
 
       - name: Shutdown VM

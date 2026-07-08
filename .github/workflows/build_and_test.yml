@@ -31,15 +31,25 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      # Runs a single command using the runners shell
       - name: Get ponyc
         run: git clone --depth 1 --single-branch --branch haiku https://github.com/ahwayakchih/ponyc.git && ls -la
+
+      - name: Create source for LIBS_TAG
+        run: |
+          echo $HAIKU_NIGHTLY_VERSION >haiku_libs_tag.source
+          sha256sum \
+            ponyc/lib/CMakePresets.json \
+            ponyc/CMakeLists.txt \
+            ponyc/lib/CMakeLists.txt \
+            ponyc/lib/build-libs.cmake \
+            ponyc/lib/llvm/patches/* \
+            >>haiku_libs_tag.source
 
       - name: Check libs cache
         id: check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          LIBS_TAG: ${{ hashFiles('ponyc/lib/CMakePresets.json', 'ponyc/CMakeLists.txt', 'ponyc/lib/CMakeLists.txt', 'ponyc/lib/build-libs.cmake', 'ponyc/lib/llvm/patches/*') }}
+          LIBS_TAG: ${{ hashFiles('haiku_libs_tag.source') }}
         run: |
           # The libs live in the VM but the .libs-cache-miss marker and its gate
           # live on the host, so the decision has to happen here, before the VM
@@ -63,7 +73,13 @@ jobs:
             touch .libs-cache-miss
           fi
 
-      # Runs a set of commands using the runners shell
+      # Avoid burdening Haiku project by caching ISO on our side
+      - uses: actions/cache@v6
+        id: haiku_iso
+        with:
+          path: haiku.iso
+          key: ${{ env.HAIKU_NIGHTLY_VERSION }}
+
       - name: Provision VM
         run: |
           export GITHUB_WORKSPACE=${GITHUB_WORKSPACE}/ponyc
@@ -73,20 +89,20 @@ jobs:
         if: ${{ hashFiles('ponyc/.libs-cache-miss') == '' && steps.check.outputs.hit == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          LIBS_TAG: ${{ hashFiles('ponyc/lib/CMakePresets.json', 'ponyc/CMakeLists.txt', 'ponyc/lib/CMakeLists.txt', 'ponyc/lib/build-libs.cmake', 'ponyc/lib/llvm/patches/*') }}
+          LIBS_TAG: ${{ hashFiles('haiku_libs_tag.source') }}
         run: bash ponyc/.ci-scripts/haiku/haiku-libs-cache.bash restore
 
       - name: Build libs
         if: ${{ hashFiles('ponyc/.libs-cache-miss') != '' || steps.check.outputs.hit == 'false' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          LIBS_TAG: ${{ hashFiles('ponyc/lib/CMakePresets.json', 'ponyc/CMakeLists.txt', 'ponyc/lib/CMakeLists.txt', 'ponyc/lib/build-libs.cmake', 'ponyc/lib/llvm/patches/*') }}
+          LIBS_TAG: ${{ hashFiles('haiku_libs_tag.source') }}
         # When off main and the libs aren't cached, build LLVM in the VM (hours)
         # and push it to the branch cache, so a re-dispatch reuses the build.
         run: bash ponyc/.ci-scripts/haiku/haiku-libs-cache.bash build-push-branch
 
       - name: Build and test
-        if: ${{ hashFiles('ponyc/.libs-cache-miss') == '' }}
+        if: ${{ hashFiles('ponyc/.libs-cache-miss') != '' || steps.check.outputs.hit == 'false' }}
         run: |
           ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
           set -e

@@ -10,6 +10,11 @@ on:
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref to check out and test (branch, tag, or SHA)"
+        required: false
+        default: "haiku"
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -30,45 +35,76 @@ jobs:
       - name: Get ponyc
         run: git clone --depth 1 --single-branch --branch haiku https://github.com/ahwayakchih/ponyc.git && ls -la
 
-      - name: Switch to ponyc as GITHUB_WORKSPACE
-        run: echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}/ponyc" >> $GITHUB_ENV
+      - name: Check libs cache
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LIBS_TAG: ${{ hashFiles('ponyc/lib/CMakePresets.json', 'ponyc/CMakeLists.txt', 'ponyc/lib/CMakeLists.txt', 'ponyc/lib/build-libs.cmake', 'ponyc/lib/llvm/patches/*') }}
+        run: |
+          # The libs live in the VM but the .libs-cache-miss marker and its gate
+          # live on the host, so the decision has to happen here, before the VM
+          # boots. Off main (a manual dispatch of a branch): build LLVM in the VM if
+          # it isn't cached (hit=false; the "Build libs" step pushes it). On main (a
+          # scheduled run, or a dispatch left on main): if it isn't cached, write
+          # the marker and skip -- we don't build LLVM on main.
+          cd ponyc
+          if python3 .ci-scripts/libs-cache/oci_libs_cache.py exists --platform haiku --tag "$LIBS_TAG"; then
+            echo "Libs present in the main GHCR cache."
+            echo "hit=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.ref }}" != "haiku" ]; then
+            if python3 .ci-scripts/libs-cache/branch_libs_cache.py exists --platform haiku --tag "$LIBS_TAG"; then
+              echo "Libs present in the branch GHCR cache."
+              echo "hit=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "Off-main manual run, cache miss; the VM will build LLVM."
+              echo "hit=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            touch .libs-cache-miss
+            echo "::notice::Haiku libs cache miss (tag $LIBS_TAG) on a main run; skipping this tier-3 run. The warmer refills it on the next push to main."
+          fi
 
       # Runs a set of commands using the runners shell
       - name: Provision VM
+        if: ${{ hashFiles('ponyc/.libs-cache-miss') == '' }}
         run: |
           export GITHUB_WORKSPACE=${GITHUB_WORKSPACE}/ponyc
           bash ponyc/.ci-scripts/haiku/haiku-provision.bash
 
+      - name: Restore libs
+        if: ${{ hashFiles('ponyc/.libs-cache-miss') == '' && steps.check.outputs.hit == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LIBS_TAG: ${{ hashFiles('ponyc/lib/CMakePresets.json', 'ponyc/CMakeLists.txt', 'ponyc/lib/CMakeLists.txt', 'ponyc/lib/build-libs.cmake', 'ponyc/lib/llvm/patches/*') }}
+        run: cd ponyc && bash .ci-scripts/haiku/haiku-libs-cache.bash restore
+
       - name: Build libs
-        run: |
-          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
-          set -e
-          cd /Data/ponyc
-          export CC=/bin/gcc
-          export CXX=/bin/g++
-          cmake -DTOOLS=false -DJOBS=4 -DCC=/bin/gcc -DCXX=/bin/g++ -P lib/build-libs.cmake
-          rm -rf build/build_libs
-          EOF
+        if: ${{ hashFiles('ponyc/.libs-cache-miss') == '' && steps.check.outputs.hit == 'false' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LIBS_TAG: ${{ hashFiles('ponyc/lib/CMakePresets.json', 'ponyc/CMakeLists.txt', 'ponyc/lib/CMakeLists.txt', 'ponyc/lib/build-libs.cmake', 'ponyc/lib/llvm/patches/*') }}
+        # When off main and the libs aren't cached, build LLVM in the VM (hours)
+        # and push it to the branch cache, so a re-dispatch reuses the build.
+        run: cd ponyc && bash .ci-scripts/haiku/haiku-libs-cache.bash build-push-branch
 
       - name: Build and test
+        if: ${{ hashFiles('ponyc/.libs-cache-miss') == '' }}
         run: |
           ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
           set -e
           cd /Data/ponyc
-          export CC=/bin/gcc
-          export CXX=/bin/g++
-          cmake --preset debug -DCC=/bin/gcc -DCXX=/bin/g++
+          cmake --preset debug -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
           cmake --build --preset debug
           cmake --build --preset debug --target pony-doc-tests pony-lint-tests pony-lsp-tests
           ctest --preset debug -L ci-core
           ctest --preset debug -R pony-doc-tests
           ctest --preset debug -R pony-lint-tests
           ctest --preset debug -R pony-lsp-tests
-          cmake --preset release -DCC=/bin/gcc -DCXX=/bin/g++
+          cmake --preset release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
           cmake --build --preset release
           ctest --preset release -L ci-core
           EOF
       - name: Shutdown VM
-        if: always()
+        if: ${{ always() && hashFiles('ponyc/.libs-cache-miss') == '' }}
         run: |
           pkill -f qemu-system-x86 || true

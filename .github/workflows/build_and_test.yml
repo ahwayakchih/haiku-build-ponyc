@@ -75,7 +75,7 @@ jobs:
 
       # Avoid burdening Haiku project by caching ISO on our side
       - uses: actions/cache@v6
-        id: haiku_iso
+        id: haiku-iso
         with:
           path: haiku.iso
           key: ${{ env.HAIKU_NIGHTLY_VERSION }}
@@ -84,6 +84,49 @@ jobs:
         run: |
           export GITHUB_WORKSPACE=${GITHUB_WORKSPACE}/ponyc
           bash ponyc/.ci-scripts/haiku/haiku-provision.bash
+
+      - name: Restore libs
+        if: ${{ hashFiles('ponyc/.libs-cache-miss') == '' && steps.check.outputs.hit == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LIBS_TAG: ${{ hashFiles('haiku_libs_tag.source') }}
+        run: bash ponyc/.ci-scripts/haiku/haiku-libs-cache.bash restore
+
+      - name: Build libs
+        if: ${{ hashFiles('ponyc/.libs-cache-miss') != '' || steps.check.outputs.hit == 'false' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LIBS_TAG: ${{ hashFiles('haiku_libs_tag.source') }}
+        # When off main and the libs aren't cached, build LLVM in the VM (hours)
+        # and push it to the branch cache, so a re-dispatch reuses the build.
+        # run: bash ponyc/.ci-scripts/haiku/haiku-libs-cache.bash build-push-branch
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<REMOTE
+          set -e
+          cd /Data/ponyc
+          export GITHUB_TOKEN='${GITHUB_TOKEN}' GITHUB_REPOSITORY='${GITHUB_REPOSITORY}' GITHUB_ACTOR='${GITHUB_ACTOR}'
+          mkdir -p build/libs || true
+          touch build/libs/fake_lib_for_testing || true
+          python3 .ci-scripts/libs-cache/branch_libs_cache.py push --platform haiku --tag '${LIBS_TAG}' || echo '::warning::haiku branch libs cache push failed, will rebuild next run'"
+          REMOTE
+
+      - name: Build and test
+        if: ${{ hashFiles('ponyc/.libs-cache-miss') != '' || steps.check.outputs.hit == 'false' }}
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
+          set -e
+          cd /Data/ponyc
+          cmake --preset debug -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+          cmake --build --preset debug
+          cmake --build --preset debug --target pony-doc-tests pony-lint-tests pony-lsp-tests
+          ctest --preset debug -L ci-core
+          ctest --preset debug -R pony-doc-tests
+          ctest --preset debug -R pony-lint-tests
+          ctest --preset debug -R pony-lsp-tests
+          cmake --preset release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+          cmake --build --preset release
+          ctest --preset release -L ci-core
+          EOF
 
       - name: Shutdown VM
         if: ${{ always() }}

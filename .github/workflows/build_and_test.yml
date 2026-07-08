@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      HAIKU_NIGHTLY_VERSION: hrev59823
+      HAIKU_NIGHTLY_VERSION: hrev59828
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -124,14 +124,7 @@ jobs:
           LIBS_TAG: ${{ hashFiles('haiku_libs_tag.source') }}
         # When off main and the libs aren't cached, build LLVM in the VM (hours)
         # and push it to the branch cache, so a re-dispatch reuses the build.
-        # run: bash ponyc/.ci-scripts/haiku/haiku-libs-cache.bash build-push-branch
-        run: |
-          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
-            set -e
-            cd /Data/ponyc
-            mkdir -p build/libs
-            touch build/libs/fake_lib_file
-          EOF
+        run: bash ponyc/.ci-scripts/haiku/haiku-libs-cache.bash build-push-branch
 
       # We keep our own libs cache
       - name: Cache libs

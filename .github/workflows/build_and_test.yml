@@ -75,8 +75,9 @@ jobs:
           fi
 
       # Avoid burdening Haiku project by caching ISO on our side
-      - uses: actions/cache@v6
+      - name: Restore Haiku ISO from our own cache
         id: haiku-iso
+        uses: actions/cache/restore@v6
         with:
           path: haiku.iso
           key: ${{ env.HAIKU_NIGHTLY_VERSION }}
@@ -85,6 +86,13 @@ jobs:
         run: |
           export GITHUB_WORKSPACE=${GITHUB_WORKSPACE}/ponyc
           bash ponyc/.ci-scripts/haiku/haiku-provision.bash
+
+      - name: Store Haiku ISO in our own cache
+        if: ${{ steps.haiku-iso.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: haiku.iso
+          key: ${{ steps.haiku-iso.outputs.cache-primary-key }}
 
       # This step is from ponyc's workflow
       # It will not restore anything, but tests to see if haiku-libs-cache.bash does not crash

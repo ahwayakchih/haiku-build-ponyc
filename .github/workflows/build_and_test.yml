@@ -79,7 +79,7 @@ jobs:
         id: haiku-iso
         uses: actions/cache/restore@v6
         with:
-          path: ${{ format('{0}/haiku.iso', runner.temp) }}
+          path: ${{ format('{0}/vm-artifacts/haiku.iso', runner.temp) }}
           key: ${{ env.HAIKU_NIGHTLY_VERSION }}
 
       - name: Provision VM
@@ -91,7 +91,7 @@ jobs:
         if: ${{ steps.haiku-iso.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v6
         with:
-          path: ${{ format('{0}/haiku.iso', runner.temp) }}
+          path: ${{ format('{0}/vm-artifacts/haiku.iso', runner.temp) }}
           key: ${{ steps.haiku-iso.outputs.cache-primary-key }}
 
       # This step is from ponyc's workflow

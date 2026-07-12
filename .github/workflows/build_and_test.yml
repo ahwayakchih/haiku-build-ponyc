@@ -88,7 +88,7 @@ jobs:
           path: |
             ${{ format('{0}/vm-artifacts/haiku_system.qcow2', runner.temp) }}
             haiku_vm_key*
-          key: ${{ env.HAIKU_NIGHTLY_VERSION }}
+          key: ${{ format('{0}-system', env.HAIKU_NIGHTLY_VERSION) }}
 
       # Avoid burdening Haiku project by caching ISO on our side
       - name: Restore Haiku ISO from our own cache
@@ -119,7 +119,7 @@ jobs:
           path: |
             ${{ format('{0}/vm-artifacts/haiku_system.qcow2', runner.temp) }}
             haiku_vm_key*
-          key: ${{ steps.haiku-system.outputs.cache-primary-key || env.HAIKU_NIGHTLY_VERSION }}
+          key: ${{ steps.haiku-system.outputs.cache-primary-key || format('{0}-system', env.HAIKU_NIGHTLY_VERSION) }}
 
       # This step is from ponyc's workflow
       # It will not restore anything, but tests to see if haiku-libs-cache.bash does not crash

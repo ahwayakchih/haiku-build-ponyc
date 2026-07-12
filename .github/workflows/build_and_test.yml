@@ -37,7 +37,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Get ponyc
-        run: git clone --depth 1 --single-branch --branch ${{ inputs.ref || "ci-haiku" }} https://github.com/ahwayakchih/ponyc.git && ls -la
+        run: git clone --depth 1 --single-branch --branch ${{ inputs.ref || 'ci-haiku' }} https://github.com/ahwayakchih/ponyc.git && ls -la
 
       - name: Create source for LIBS_TAG
         run: |

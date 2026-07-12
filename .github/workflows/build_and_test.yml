@@ -82,7 +82,7 @@ jobs:
       # Avoid burdening Haiku depot by caching configured system disk
       - name: Restore Haiku system disk from our own cache
         id: haiku-system
-        if: ${{ inputs.force-install }}
+        if: ${{ ! inputs.force-install }}
         uses: actions/cache/restore@v6
         with:
           path: |

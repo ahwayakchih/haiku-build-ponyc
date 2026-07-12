@@ -79,26 +79,19 @@ jobs:
             touch .libs-cache-miss
           fi
 
-      # Avoid burdening Haiku depot by caching configured system disk
-      - name: Restore Haiku system disk from our own cache
-        id: haiku-system
+      # Avoid burdening Haiku project by caching ISO and configured system disk
+      - name: Restore Haiku system disk and ISO from our own cache
+        id: haiku-cache
         uses: actions/cache/restore@v6
         with:
           path: |
+            ${{ format('{0}/vm-artifacts/haiku.iso', runner.temp) }}
             ${{ format('{0}/vm-artifacts/haiku_system.qcow2', runner.temp) }}
             haiku_vm_key*
-          key: ${{ format('{0}-system', env.HAIKU_NIGHTLY_VERSION) }}
-
-      # Avoid burdening Haiku project by caching ISO on our side
-      - name: Restore Haiku ISO from our own cache
-        id: haiku-iso
-        uses: actions/cache/restore@v6
-        with:
-          path: ${{ format('{0}/vm-artifacts/haiku.iso', runner.temp) }}
           key: ${{ env.HAIKU_NIGHTLY_VERSION }}
 
       - name: Force reinstall by removing cached system disk
-        if: ${{ inputs.force-install && steps.haiku-system.outputs.cache-hit == 'true' }}
+        if: ${{ inputs.force-install && steps.haiku-cache.outputs.cache-hit == 'true' }}
         run: rm ${{ runner.temp }}/vm-artifacts/haiku_system.qcow2
 
       - name: Provision VM
@@ -107,21 +100,15 @@ jobs:
           export GITHUB_WORKSPACE=${GITHUB_WORKSPACE}/ponyc
           bash ponyc/.ci-scripts/haiku/haiku-provision.bash
 
-      - name: Store Haiku ISO in our own cache
-        if: ${{ steps.haiku-iso.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@v6
-        with:
-          path: ${{ format('{0}/vm-artifacts/haiku.iso', runner.temp) }}
-          key: ${{ steps.haiku-iso.outputs.cache-primary-key }}
-
-      - name: Store Haiku system disk in our own cache
-        if: ${{ inputs.force-install || steps.haiku-system.outputs.cache-hit != 'true' }}
+      - name: Store Haiku ISO and system disk in our own cache
+        if: ${{ inputs.force-install || steps.haiku-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v6
         with:
           path: |
+            ${{ format('{0}/vm-artifacts/haiku.iso', runner.temp) }}
             ${{ format('{0}/vm-artifacts/haiku_system.qcow2', runner.temp) }}
             haiku_vm_key*
-          key: ${{ steps.haiku-system.outputs.cache-primary-key }}
+          key: ${{ steps.haiku-cache.outputs.cache-primary-key }}
 
       # This step is from ponyc's workflow
       # It will not restore anything, but tests to see if haiku-libs-cache.bash does not crash

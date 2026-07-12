@@ -82,7 +82,6 @@ jobs:
       # Avoid burdening Haiku depot by caching configured system disk
       - name: Restore Haiku system disk from our own cache
         id: haiku-system
-        if: ${{ ! inputs.force-install }}
         uses: actions/cache/restore@v6
         with:
           path: |
@@ -98,6 +97,10 @@ jobs:
         with:
           path: ${{ format('{0}/vm-artifacts/haiku.iso', runner.temp) }}
           key: ${{ env.HAIKU_NIGHTLY_VERSION }}
+
+      - name: Force reinstall by removing cached system disk
+        if: ${{ inputs.force-install }}
+        run: rm ${{ runner.temp }}/vm-artifacts/haiku_system.qcow2
 
       - name: Provision VM
         id: haiku-provision

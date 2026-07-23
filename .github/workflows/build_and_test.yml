@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      HAIKU_NIGHTLY_VERSION: hrev59861
+      HAIKU_NIGHTLY_VERSION: hrev59893
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:

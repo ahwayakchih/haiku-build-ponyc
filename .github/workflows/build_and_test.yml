@@ -34,6 +34,7 @@ jobs:
 
     env:
       HAIKU_NIGHTLY_VERSION: hrev59893
+      PONY_LLVM_LIBS_HREV: hrev59861
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -45,7 +46,7 @@ jobs:
 
       - name: Create source for LIBS_TAG
         run: |
-          echo $HAIKU_NIGHTLY_VERSION >haiku_libs_tag.source
+          echo $PONY_LLVM_LIBS_HREV >haiku_libs_tag.source
           sha256sum \
             ponyc/lib/CMakePresets.json \
             ponyc/CMakeLists.txt \

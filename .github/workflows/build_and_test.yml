@@ -196,6 +196,15 @@ jobs:
       #       ctest --preset release -L ci-core
       #     EOF
 
+      - name: Build release
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
+            set -e
+            cd /Data/ponyc
+            cmake --preset release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+            cmake --build --preset release
+          EOF
+
       - name: Package
         env:
           BUILD_PREFIX: /tmp/ponyc-build

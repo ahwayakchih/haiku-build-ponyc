@@ -205,7 +205,8 @@ jobs:
             cmake --build --preset release
           EOF
 
-      - name: Package
+      - name: Package - create
+        id: package
         env:
           BUILD_PREFIX: /tmp/ponyc-build
           PACKAGE_DIR: /tmp/ponyc-pkg
@@ -224,6 +225,14 @@ jobs:
             bash .ci-scripts/haiku/haiku-packager.bash
           EOF
           scp -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -P 2222 user@localhost:$PACKAGE_DIR/$PACKAGE.hpkg ./$PACKAGE.hpkg
+          echo PACKAGE=$PACKAGE.hpkg >> $GITHUB_OUTPUT
+          
+
+      - name: Package - publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE: ${{ steps.package.outputs.PACKAGE }}
+        run: |
           gh release create v${{ steps.ponyinfo.outputs.VERSION }} --notes "latest build" ./$PACKAGE.hpkg
 
       - name: Shutdown VM

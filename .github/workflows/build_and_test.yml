@@ -233,7 +233,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PACKAGE: ${{ steps.package.outputs.PACKAGE }}
         run: |
-          gh release create v${{ steps.ponyinfo.outputs.VERSION }} --notes "latest build" ./$PACKAGE.hpkg
+          gh release create v${{ steps.ponyinfo.outputs.VERSION }} --notes "latest build" ./$PACKAGE
 
       - name: Shutdown VM
         if: ${{ always() }}

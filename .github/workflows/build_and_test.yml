@@ -27,9 +27,7 @@ concurrency:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
     env:
@@ -56,8 +54,10 @@ jobs:
             >>haiku_libs_tag.source
 
       - name: Get Ponyc VERSION
-        id: ponyinfo
-        run: echo VERSION=$(cat ponyc/VERSION) >> $GITHUB_OUTPUT
+        id: buildsetup
+        run: |
+          echo VERSION=$(cat ponyc/VERSION) >> $GITHUB_OUTPUT
+          echo PACKAGE=ponyc-$(cat ponyc/VERSION)-$GITHUB_RUN_ATTEMPT-x86_64 >> $GITHUB_OUTPUT
 
       # This step is from ponyc's workflow
       - name: Check libs cache
@@ -210,7 +210,7 @@ jobs:
         env:
           BUILD_PREFIX: /tmp/ponyc-build
           PACKAGE_DIR: /tmp/ponyc-pkg
-          PACKAGE: ${{ format('ponyc-{0}-{1}-x86_64', steps.ponyinfo.outputs.VERSION, github.run_attempt) }}
+          PACKAGE: ${{ steps.buildsetup.outputs.PACKAGE }}
         run: |
           set -e
           ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<EOF
@@ -224,16 +224,14 @@ jobs:
             cmake --install build/build_release --prefix $BUILD_PREFIX
             bash .ci-scripts/haiku/haiku-packager.bash
           EOF
-          scp -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -P 2222 user@localhost:$PACKAGE_DIR/$PACKAGE.hpkg ./$PACKAGE.hpkg
-          echo PACKAGE=$PACKAGE.hpkg >> $GITHUB_OUTPUT
-          
+          scp -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -P 2222 user@localhost:$PACKAGE_DIR/$PACKAGE.hpkg ./$PACKAGE.hpkg          
 
       - name: Package - publish
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PACKAGE: ${{ steps.package.outputs.PACKAGE }}
         run: |
-          gh release create v${{ steps.ponyinfo.outputs.VERSION }} --notes "latest build" ./$PACKAGE
+          gh release create v${{ steps.buildsetup.outputs.VERSION }} --notes "latest build" ./$PACKAGE.hpkg
 
       - name: Shutdown VM
         if: ${{ always() }}

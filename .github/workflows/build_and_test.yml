@@ -217,7 +217,7 @@ jobs:
           key: ${{ format('{0}-{1}', env.HAIKU_NIGHTLY_VERSION, steps.buildsetup.outputs.PACKAGE) }}
 
       - name: Package - create
-        id: package
+        if: ${{ steps.package-cache.outputs.cache-hit != 'true' }}
         env:
           BUILD_PREFIX: /tmp/ponyc-build
           PACKAGE_DIR: /tmp/ponyc-pkg
@@ -248,6 +248,7 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v7
       - name: Restore package from cache
         id: package-cache
         uses: actions/cache@v6

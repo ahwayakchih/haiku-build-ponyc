@@ -55,6 +55,10 @@ jobs:
             ponyc/lib/llvm/patches/* \
             >>haiku_libs_tag.source
 
+      - name: Get Ponyc VERSION
+        id: ponyinfo
+        run: echo VERSION=$(cat ponyc/VERSION) >> $GITHUB_OUTPUT
+
       # This step is from ponyc's workflow
       - name: Check libs cache
         id: check
@@ -191,6 +195,26 @@ jobs:
             cmake --build --preset release
             ctest --preset release -L ci-core
           EOF
+
+      - name: Package
+        env:
+          BUILD_PREFIX: /tmp/ponyc-build
+          PACKAGE_DIR: /tmp/ponyc-pkg
+        run: |
+          set -e
+          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
+            set -e
+            cd /Data/ponyc
+            export PACKAGE=ponyc-${{ steps.ponyinfo.outputs.VERSION }}-${{ github.run_attempt }}-x86_64
+            export PACKAGE_DIR=$PACKAGE_DIR
+            export BUILD_PREFIX=$BUILD_PREFIX
+            mkdir -p $BUILD_PREFIX
+            mkdir -p $PACKAGE_DIR
+            cmake --install build/build_release --prefix $BUILD_PREFIX
+            bash .ci-scripts/haiku/haiku-packager.bash
+          EOF
+          scp -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -P 2222 user@localhost:$PACKAGE_DIR/$PACKAGE.hpkg ./$PACKAGE.hpkg
+          gh release create v${{ steps.ponyinfo.outputs.VERSION }} --notes "latest build" ./$PACKAGE.hpkg
 
       - name: Shutdown VM
         if: ${{ always() }}

@@ -209,12 +209,13 @@ jobs:
         env:
           BUILD_PREFIX: /tmp/ponyc-build
           PACKAGE_DIR: /tmp/ponyc-pkg
+          PACKAGE: ${{ format('ponyc-{0}-{1}-x86_64', steps.ponyinfo.outputs.VERSION, github.run_attempt) }}
         run: |
           set -e
           ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<EOF
             set -e
             cd /Data/ponyc
-            export PACKAGE=ponyc-${{ steps.ponyinfo.outputs.VERSION }}-${{ github.run_attempt }}-x86_64
+            export PACKAGE=$PACKAGE
             export PACKAGE_DIR=$PACKAGE_DIR
             export BUILD_PREFIX=$BUILD_PREFIX
             mkdir -p $BUILD_PREFIX

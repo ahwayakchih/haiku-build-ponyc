@@ -222,7 +222,7 @@ jobs:
             mkdir -p $BUILD_PREFIX
             mkdir -p $PACKAGE_DIR
             cmake --install build/build_release --prefix $BUILD_PREFIX
-            bash .ci-scripts/haiku/haiku-packager.bash
+            bash .ci-scripts/haiku/haiku-package.bash
           EOF
           scp -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -P 2222 user@localhost:$PACKAGE_DIR/$PACKAGE.hpkg ./$PACKAGE.hpkg          
 

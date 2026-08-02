@@ -53,7 +53,7 @@ jobs:
             ponyc/lib/llvm/patches/* \
             >>haiku_libs_tag.source
 
-      - name: Get Ponyc VERSION
+      - name: Get Ponyc VERSION, prepare PACKAGE name
         id: buildsetup
         run: |
           echo VERSION=$(cat ponyc/VERSION) >> $GITHUB_OUTPUT
@@ -229,9 +229,10 @@ jobs:
       - name: Package - publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PACKAGE: ${{ steps.package.outputs.PACKAGE }}
+          PACKAGE: ${{ steps.buildsetup.outputs.PACKAGE }}
+          VERSION: ${{ steps.buildsetup.outputs.VERSION }}
         run: |
-          gh release create v${{ steps.buildsetup.outputs.VERSION }} --notes "latest build" ./$PACKAGE.hpkg
+          gh release create v$VERSION --notes "latest build" ./$PACKAGE.hpkg
 
       - name: Shutdown VM
         if: ${{ always() }}

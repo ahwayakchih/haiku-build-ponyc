@@ -25,14 +25,18 @@ concurrency:
   group: haiku-build-and-test
   cancel-in-progress: true
 
+env:
+  HAIKU_NIGHTLY_VERSION: hrev59921
+  PONY_LLVM_LIBS_HREV: hrev59861
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      HAIKU_NIGHTLY_VERSION: hrev59921
-      PONY_LLVM_LIBS_HREV: hrev59861
+    outputs:
+      PACKAGE: ${{ steps.buildsetup.outputs.PACKAGE }}
+      VERSION: ${{ steps.buildsetup.outputs.VERSION }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -205,6 +209,13 @@ jobs:
             cmake --build --preset release
           EOF
 
+      - name: Package - prepare cache
+        id: package-cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ format('{0}.hpkg', steps.buildsetup.outputs.PACKAGE) }}
+          key: ${{ format('{0}-{1}', env.HAIKU_NIGHTLY_VERSION, steps.buildsetup.outputs.PACKAGE) }}
+
       - name: Package - create
         id: package
         env:
@@ -226,15 +237,28 @@ jobs:
           EOF
           scp -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -P 2222 user@localhost:$PACKAGE_DIR/$PACKAGE.hpkg ./$PACKAGE.hpkg          
 
-      - name: Package - publish
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PACKAGE: ${{ steps.buildsetup.outputs.PACKAGE }}
-          VERSION: ${{ steps.buildsetup.outputs.VERSION }}
-        run: |
-          gh release create v$VERSION --notes "latest build" ./$PACKAGE.hpkg
-
       - name: Shutdown VM
         if: ${{ always() }}
         run: |
           pkill -f qemu-system-x86 || true
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+    steps:
+      - name: Restore package from cache
+        id: package-cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ format('{0}.hpkg', needs.build.outputs.PACKAGE) }}
+          key: ${{ format('{0}-{1}', env.HAIKU_NIGHTLY_VERSION, needs.build.outputs.PACKAGE) }}
+      - name: Publish
+        if: ${{ steps.package-cache.outputs.cache-hit == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGE: ${{ needs.build.outputs.PACKAGE }}
+          VERSION: ${{ needs.build.outputs.VERSION }}
+        run: |
+          gh release create v$VERSION --notes "Haiku ${{ env.HAIKU_NIGHTLY_VERSION }}, Pony $VERSION" ./$PACKAGE.hpkg

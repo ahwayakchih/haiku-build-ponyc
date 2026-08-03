@@ -61,7 +61,7 @@ jobs:
           echo VERSION=$VERSION >> $GITHUB_OUTPUT
 
           lasttag=$(git tag -l "v$VERSION*" --sort=-version:refname | head -n1)
-          export PACKAGE_REVISION=echo ${lasttag:-0.0-0} | cut -d '-' -f2 | xargs -I '{}' echo '{}+1' | bc || echo 1)
+          export PACKAGE_REVISION=$(echo ${lasttag:-0.0-0} | cut -d '-' -f2 | xargs -I '{}' echo '{}+1' | bc || echo 1)
           echo revision is $PACKAGE_REVISION
           echo PACKAGE_REVISION=$PACKAGE_REVISION >> $GITHUB_OUTPUT
 

@@ -21,8 +21,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  HAIKU_NIGHTLY_VERSION: hrev59921
-  PONY_LLVM_LIBS_HREV: hrev59861
+  HAIKU_NIGHTLY_VERSION: hrev59922
+  PONY_LLVM_LIBS_HREV: hrev59922
 
 jobs:
   build:

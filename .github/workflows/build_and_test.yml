@@ -176,31 +176,31 @@ jobs:
           path: libs.zip
           key: ${{ steps.libs-cache.outputs.cache-primary-key }}
 
-      # - name: Build and test
-      #   run: |
-      #     ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
-      #       set -e
-      #       cd /Data/ponyc
-      #       cmake --preset debug -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
-      #       cmake --build --preset debug
-      #       cmake --build --preset debug --target pony-doc-tests pony-lint-tests pony-lsp-tests
-      #       ctest --preset debug -L ci-core
-      #       ctest --preset debug -R pony-doc-tests
-      #       ctest --preset debug -R pony-lint-tests
-      #       ctest --preset debug -R pony-lsp-tests
-      #       cmake --preset release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
-      #       cmake --build --preset release
-      #       ctest --preset release -L ci-core
-      #     EOF
-
-      - name: Build release
+      - name: Build and test
         run: |
           ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
             set -e
             cd /Data/ponyc
+            cmake --preset debug -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+            cmake --build --preset debug
+            cmake --build --preset debug --target pony-doc-tests pony-lint-tests pony-lsp-tests
+            ctest --preset debug -L ci-core
+            ctest --preset debug -R pony-doc-tests
+            ctest --preset debug -R pony-lint-tests
+            ctest --preset debug -R pony-lsp-tests
             cmake --preset release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DPONY_INSTALL_SYMLINKS=OFF
             cmake --build --preset release
+            ctest --preset release -L ci-core
           EOF
+
+      # - name: Build release
+      #   run: |
+      #     ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
+      #       set -e
+      #       cd /Data/ponyc
+      #       cmake --preset release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DPONY_INSTALL_SYMLINKS=OFF
+      #       cmake --build --preset release
+      #     EOF
 
       - name: Package - prepare cache
         id: package-cache

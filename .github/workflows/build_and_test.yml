@@ -26,7 +26,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ARCH: x86-64
   HAIKU_NIGHTLY_VERSION: hrev59921
   PONY_LLVM_LIBS_HREV: hrev59861
 
@@ -206,8 +205,8 @@ jobs:
           ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
             set -e
             cd /Data/ponyc
-            cmake --preset "${ARCH}-release" -DPONY_CPU="${ARCH}" -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DPONY_INSTALL_SYMLINKS=OFF
-            cmake --build --preset "${ARCH}-release"
+            cmake --preset release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DPONY_INSTALL_SYMLINKS=OFF
+            cmake --build --preset release
           EOF
 
       - name: Package - prepare cache
@@ -233,7 +232,7 @@ jobs:
             export BUILD_PREFIX=$BUILD_PREFIX
             mkdir -p "$BUILD_PREFIX"
             mkdir -p "$PACKAGE_DIR"
-            cmake --install "build/build_${ARCH}-release" --prefix "$BUILD_PREFIX"
+            cmake --install "build/build_release" --prefix "$BUILD_PREFIX"
             bash .ci-scripts/haiku/haiku-package.bash
             echo "Package built in $PACKAGE_DIR/$PACKAGE.hpkg"
             package list "$PACKAGE_DIR/$PACKAGE.hpkg"
@@ -265,4 +264,4 @@ jobs:
           PACKAGE: ${{ needs.build.outputs.PACKAGE }}
           VERSION: ${{ needs.build.outputs.VERSION }}
         run: |
-          gh release create v$VERSION --notes "Pony $VERSION, built on Haiku ${{ env.HAIKU_NIGHTLY_VERSION }}, $ARCH" "$PACKAGE.hpkg"
+          gh release create v$VERSION --notes "Pony $VERSION, built on Haiku ${{ env.HAIKU_NIGHTLY_VERSION }}, x86_64" "$PACKAGE.hpkg"

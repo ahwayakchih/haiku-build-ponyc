@@ -37,7 +37,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           # fetch tags, so we can calculate package revision number
-          fetch-tags: 'true'
+          fetch-tags: 'false'
 
       - name: Get ponyc
         run: git clone --depth 1 --single-branch --branch ${{ inputs.ref || 'haiku' }} https://github.com/ahwayakchih/ponyc.git && ls -la
@@ -56,7 +56,8 @@ jobs:
       - name: Get Ponyc VERSION, prepare PACKAGE name
         id: buildsetup
         run: |
-          ls -la
+          set -euo pipefail
+          
           export VERSION=$(cat ponyc/VERSION)
           echo version is $VERSION
           echo VERSION=$VERSION >> $GITHUB_OUTPUT
@@ -65,10 +66,6 @@ jobs:
           echo revision is $PACKAGE_REVISION
           echo PACKAGE_REVISION=$PACKAGE_REVISION >> $GITHUB_OUTPUT
 
-          echo PACKAGE=ponyc-$VERSION-$PACKAGE_REVISION-x86_64 >> $GITHUB_OUTPUT
-
-      - name: self-test
-        run: |
-          echo VERSION=${{ steps.buildsetup.outputs.VERSION }}
-          echo REVISION=${{ steps.buildsetup.outputs.PACKAGE_REVISION }}
-          echo PACKAGE=${{ steps.buildsetup.outputs.PACKAGE }}
+          export PACKAGE=ponyc-$VERSION-$PACKAGE_REVISION-x86_64
+          echo package is $PACKAGE
+          echo PACKAGE=$PACKAGE >> $GITHUB_OUTPUT

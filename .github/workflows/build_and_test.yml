@@ -35,6 +35,9 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE
       - uses: actions/checkout@v7
+        with:
+          # fetch tags, so we can calculate package revision number
+          fetch-tags: 'true'
 
       - name: Get ponyc
         run: git clone --depth 1 --single-branch --branch ${{ inputs.ref || 'haiku' }} https://github.com/ahwayakchih/ponyc.git && ls -la
@@ -57,7 +60,7 @@ jobs:
           export VERSION=$(cat ponyc/VERSION)
           echo version is $VERSION
           echo VERSION=$VERSION >> $GITHUB_OUTPUT
-          git tag -l "v$VERSION*" --sort=-version:refname
+
           export PACKAGE_REVISION=$(git tag -l "v$VERSION*" --sort=-version:refname | head -n1 | cut -d '-' -f2 | xargs -I '{}' echo '{}+1' | bc || echo 1)
           echo revision is $PACKAGE_REVISION
           echo PACKAGE_REVISION=$PACKAGE_REVISION >> $GITHUB_OUTPUT

@@ -37,7 +37,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           # fetch tags, so we can calculate package revision number
-          fetch-tags: 'false'
+          fetch-tags: 'true'
 
       - name: Get ponyc
         run: git clone --depth 1 --single-branch --branch ${{ inputs.ref || 'haiku' }} https://github.com/ahwayakchih/ponyc.git && ls -la

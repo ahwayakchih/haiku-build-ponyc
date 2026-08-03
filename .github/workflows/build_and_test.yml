@@ -56,13 +56,12 @@ jobs:
       - name: Get Ponyc VERSION, prepare PACKAGE name
         id: buildsetup
         run: |
-          set -euo pipefail
-          
           export VERSION=$(cat ponyc/VERSION)
           echo version is $VERSION
           echo VERSION=$VERSION >> $GITHUB_OUTPUT
 
-          export PACKAGE_REVISION=$(git tag -l "v$VERSION*" --sort=-version:refname | head -n1 | cut -d '-' -f2 | xargs -I '{}' echo '{}+1' | bc || echo 1)
+          lasttag=$(git tag -l "v$VERSION*" --sort=-version:refname | head -n1)
+          export PACKAGE_REVISION=echo ${lasttag:-0.0-0} | cut -d '-' -f2 | xargs -I '{}' echo '{}+1' | bc || echo 1)
           echo revision is $PACKAGE_REVISION
           echo PACKAGE_REVISION=$PACKAGE_REVISION >> $GITHUB_OUTPUT
 

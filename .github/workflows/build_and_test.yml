@@ -66,7 +66,3 @@ jobs:
           echo VERSION=${{ steps.buildsetup.outputs.VERSION }}
           echo REVISION=${{ steps.buildsetup.outputs.PACKAGE_REVISION }}
           echo PACKAGE=${{ steps.buildsetup.outputs.PACKAGE }}
-
-        run: |
-          gh release delete v$VERSION-$GITHUB_RUN_ATTEMPT -y --cleanup-tag || true
-          gh release create v$VERSION-$GITHUB_RUN_ATTEMPT --notes "Pony $VERSION, built on Haiku ${{ env.HAIKU_NIGHTLY_VERSION }}, x86_64" "$PACKAGE.hpkg"

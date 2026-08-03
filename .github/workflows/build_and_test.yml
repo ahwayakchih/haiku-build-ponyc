@@ -56,7 +56,7 @@ jobs:
           export VERSION=$(cat ponyc/VERSION)
           echo VERSION=$VERSION >> $GITHUB_OUTPUT
 
-          export PACKAGE_REVISION=$(git tag --sort=-version:refname | grep  | head -n1 | cut -d '-' -f2 | xargs -I '{}' echo '{}+1' | bc)
+          export PACKAGE_REVISION=$(git tag --sort=-version:refname | grep $VERSION | head -n1 | cut -d '-' -f2 | xargs -I '{}' echo '{}+1' | bc || echo 1)
           echo revision is $PACKAGE_REVISION
           echo PACKAGE_REVISION=$PACKAGE_REVISION >> $GITHUB_OUTPUT
 

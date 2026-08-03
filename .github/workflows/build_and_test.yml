@@ -53,6 +53,7 @@ jobs:
       - name: Get Ponyc VERSION, prepare PACKAGE name
         id: buildsetup
         run: |
+          ls -la
           export VERSION=$(cat ponyc/VERSION)
           echo version is $VERSION
           echo VERSION=$VERSION >> $GITHUB_OUTPUT

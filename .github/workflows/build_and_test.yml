@@ -9,7 +9,7 @@ on:
       ref:
         description: "Git ref to check out and test (branch, tag, or SHA)"
         required: false
-        default: "haiku"
+        default: "haiku-without-llvm"
       force-install:
         description: "Reinstall system disk, even when it was found in our cache"
         required: false
@@ -21,8 +21,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  HAIKU_NIGHTLY_VERSION: hrev59951
-  PONY_LLVM_LIBS_HREV: hrev59951
+  HAIKU_NIGHTLY_VERSION: hrev60019
+  PONY_LLVM_LIBS_HREV: hrev60019
+  PONY_USE_OS_LLVM: ON
 
 jobs:
   build:
@@ -114,7 +115,6 @@ jobs:
         if: ${{ inputs.force-install }}
         run: rm -f "${{ runner.temp }}/vm-artifacts/haiku_system.qcow2"
 
-
       - name: Provision VM
         id: haiku-provision
         run: |
@@ -195,14 +195,14 @@ jobs:
           ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
             set -e
             cd /Data/ponyc
-            cmake --preset debug -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+            cmake --preset debug -DPONY_USES=os_llvm -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
             cmake --build --preset debug
             cmake --build --preset debug --target pony-doc-tests pony-lint-tests pony-lsp-tests
             ctest --preset debug -L ci-core
             ctest --preset debug -R pony-doc-tests
             ctest --preset debug -R pony-lint-tests
             ctest --preset debug -R pony-lsp-tests
-            cmake --preset release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DPONY_INSTALL_SYMLINKS=OFF
+            cmake --preset release -DPONY_USES=os_llvm -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DPONY_INSTALL_SYMLINKS=OFF
             cmake --build --preset release
             ctest --preset release -L ci-core
           EOF

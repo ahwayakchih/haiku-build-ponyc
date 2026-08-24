@@ -192,7 +192,7 @@ jobs:
 
       - name: Build and test
         env:
-          PONY_USES: "${{ env.PONY_USE_OS_LLVM == 'ON' && 'os_llvm' || '' }}"
+          PONY_USES: ${{ env.PONY_USE_OS_LLVM == 'ON' && 'os_llvm' || '' }}
         run: |
           ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
             set -e

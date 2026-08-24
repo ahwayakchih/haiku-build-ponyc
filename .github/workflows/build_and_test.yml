@@ -23,7 +23,7 @@ concurrency:
 env:
   HAIKU_NIGHTLY_VERSION: hrev60019
   PONY_LLVM_LIBS_HREV: hrev60019
-  PONY_USE_OS_LLVM: ON
+  PONY_USE_OS_LLVM: 'ON'
 
 jobs:
   build:

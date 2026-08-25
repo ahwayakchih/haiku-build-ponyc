@@ -101,6 +101,15 @@ jobs:
             touch .libs-cache-miss
           fi
 
+      - name: Create source for SYSTEM_TAG
+        run: |
+          echo $HAIKU_NIGHTLY_VERSION >haiku_system_tag.source
+          sha256sum \
+            .ci-scripts/haiku/haiku-guest-installer.bash \
+            .ci-scripts/haiku/haiku-provision.bash \
+            .ci-scripts/haiku/haiku_configure_vm.py \
+            >>haiku_libs_tag.source
+
       # Avoid burdening Haiku project by caching ISO and configured system disk
       - name: Restore Haiku system disk and ISO from our own cache
         id: haiku-cache
@@ -110,7 +119,7 @@ jobs:
             ${{ format('{0}/vm-artifacts/haiku.iso', runner.temp) }}
             ${{ format('{0}/vm-artifacts/haiku_system.qcow2', runner.temp) }}
             haiku_vm_key*
-          key: ${{ env.HAIKU_NIGHTLY_VERSION }}
+          key: ${{ format('{0}-{1}', env.HAIKU_NIGHTLY_VERSION, hashFiles('haiku_system_tag.source')) }}
 
       - name: Force reinstall by removing cached system disk
         if: ${{ inputs.force-install }}

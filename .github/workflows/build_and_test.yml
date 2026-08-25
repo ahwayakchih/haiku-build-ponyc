@@ -210,6 +210,21 @@ jobs:
             ctest --preset release -L ci-core
           EOF
 
+      - name: Copy crash reports
+        if: ${{ always() }}
+        run: |
+          mkdir -p ./crash-reports
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no -i haiku_vm_key -p 2222" \
+            user@localhost:/boot/home/Desktop/*.report ./crash-reports/
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ always() }}
+        with:
+          name: crash-reports
+          path: ./crash-reports/*.report
+          if-no-files-found: ignore
+          overwrite: true
+
       # - name: Build release
       #   run: |
       #     ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'

@@ -47,6 +47,7 @@ jobs:
       - name: Create source for LIBS_TAG
         run: |
           echo $PONY_LLVM_LIBS_HREV >haiku_libs_tag.source
+          echo $PONY_USE_OS_LLVM >>haiku_libs_tag.source
           sha256sum \
             ponyc/lib/CMakePresets.json \
             ponyc/CMakeLists.txt \

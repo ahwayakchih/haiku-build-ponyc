@@ -273,7 +273,7 @@ jobs:
             echo "Package built in $PACKAGE_DIR/$PACKAGE.hpkg"
             package list "$PACKAGE_DIR/$PACKAGE.hpkg"
             mimeset -f "$PACKAGE_DIR/$PACKAGE.hpkg"
-            zip -r -y "$PACKAGE_DIR/$PACKAGE.zip" "$PACKAGE_DIR/$PACKAGE.hpkg"
+            zip -r -y -j "$PACKAGE_DIR/$PACKAGE.zip" "$PACKAGE_DIR/$PACKAGE.hpkg"
           EOF
           scp -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -P 2222 user@localhost:"$PACKAGE_DIR/$PACKAGE.zip" "$PACKAGE.zip"
 

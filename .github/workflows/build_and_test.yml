@@ -105,9 +105,9 @@ jobs:
         run: |
           echo $HAIKU_NIGHTLY_VERSION >haiku_system_tag.source
           sha256sum \
-            .ci-scripts/haiku/haiku-guest-installer.bash \
-            .ci-scripts/haiku/haiku-provision.bash \
-            .ci-scripts/haiku/haiku_configure_vm.py \
+            ponyc/.ci-scripts/haiku/haiku-guest-installer.bash \
+            ponyc/.ci-scripts/haiku/haiku-provision.bash \
+            ponyc/.ci-scripts/haiku/haiku_configure_vm.py \
             >>haiku_libs_tag.source
 
       # Avoid burdening Haiku project by caching ISO and configured system disk
@@ -224,7 +224,8 @@ jobs:
         run: |
           mkdir -p ./crash-reports
           rsync -avz -e "ssh -o StrictHostKeyChecking=no -i haiku_vm_key -p 2222" \
-            user@localhost:/boot/home/Desktop/*.report ./crash-reports/
+            user@localhost:/boot/home/Desktop/*.report ./crash-reports/ \
+            || true
 
       - uses: actions/upload-artifact@v7
         if: ${{ always() }}
@@ -247,7 +248,7 @@ jobs:
         id: package-cache
         uses: actions/cache@v6
         with:
-          path: ${{ format('{0}.hpkg', steps.buildsetup.outputs.PACKAGE) }}
+          path: ${{ format('{0}.zip', steps.buildsetup.outputs.PACKAGE) }}
           key: ${{ format('{0}-{1}', env.HAIKU_NIGHTLY_VERSION, steps.buildsetup.outputs.PACKAGE) }}
 
       - name: Package - create
@@ -271,8 +272,10 @@ jobs:
             bash .ci-scripts/haiku/haiku-package.bash
             echo "Package built in $PACKAGE_DIR/$PACKAGE.hpkg"
             package list "$PACKAGE_DIR/$PACKAGE.hpkg"
+            mimeset -f "$PACKAGE_DIR/$PACKAGE.hpkg"
+            zip -r -y "$PACKAGE_DIR/$PACKAGE.zip" "$PACKAGE_DIR/$PACKAGE.hpkg"
           EOF
-          scp -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -P 2222 user@localhost:"$PACKAGE_DIR/$PACKAGE.hpkg" "$PACKAGE.hpkg"
+          scp -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -P 2222 user@localhost:"$PACKAGE_DIR/$PACKAGE.zip" "$PACKAGE.zip"
 
       - name: Shutdown VM
         if: ${{ always() }}
@@ -290,7 +293,7 @@ jobs:
         id: package-cache
         uses: actions/cache@v6
         with:
-          path: ${{ format('{0}.hpkg', needs.build.outputs.PACKAGE) }}
+          path: ${{ format('{0}.zip', needs.build.outputs.PACKAGE) }}
           key: ${{ format('{0}-{1}', env.HAIKU_NIGHTLY_VERSION, needs.build.outputs.PACKAGE) }}
       - name: Publish
         if: ${{ steps.package-cache.outputs.cache-hit == 'true' }}
@@ -301,4 +304,4 @@ jobs:
           PACKAGE_REVISION: ${{ needs.build.outputs.PACKAGE_REVISION }}
         run: |
           gh release delete v$VERSION-$PACKAGE_REVISION -y --cleanup-tag || true
-          gh release create v$VERSION-$PACKAGE_REVISION --notes "Pony $VERSION, built on Haiku ${{ env.HAIKU_NIGHTLY_VERSION }}, x86_64" "$PACKAGE.hpkg"
+          gh release create v$VERSION-$PACKAGE_REVISION --notes "Pony $VERSION, built on Haiku ${{ env.HAIKU_NIGHTLY_VERSION }}, x86_64" "$PACKAGE.zip"

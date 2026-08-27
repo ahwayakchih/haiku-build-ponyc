@@ -270,7 +270,7 @@ jobs:
             export BUILD_PREFIX=$BUILD_PREFIX
             mkdir -p "$BUILD_PREFIX"
             mkdir -p "$PACKAGE_DIR"
-            cmake --install "build_${{env.PRESET_RELEASE}}" --prefix "$BUILD_PREFIX"
+            cmake --install "build/build_${{env.PRESET_RELEASE}}" --prefix "$BUILD_PREFIX"
             bash .ci-scripts/haiku/haiku-package.bash
             echo "Package built in $PACKAGE_DIR/$PACKAGE.hpkg"
             package list "$PACKAGE_DIR/$PACKAGE.hpkg"

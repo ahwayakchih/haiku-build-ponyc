@@ -207,16 +207,16 @@ jobs:
           ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
             set -e
             cd /Data/ponyc
-            cmake --preset debug -DPONY_USES=${{env.PONY_USES}} -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
-            cmake --build --preset debug
-            cmake --build --preset debug --target pony-doc-tests pony-lint-tests pony-lsp-tests
-            ctest --preset debug -L ci-core
-            ctest --preset debug -R pony-doc-tests
-            ctest --preset debug -R pony-lint-tests
-            ctest --preset debug -R pony-lsp-tests
-            cmake --preset release -DPONY_USES=${{env.PONY_USES}} -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DPONY_INSTALL_SYMLINKS=OFF
-            cmake --build --preset release
-            ctest --preset release -L ci-core
+            cmake --preset x86-64-debug -DPONY_USES=${{env.PONY_USES}} -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+            cmake --build --preset x86-64-debug
+            cmake --build --preset x86-64-debug --target pony-doc-tests pony-lint-tests pony-lsp-tests
+            ctest --preset x86-64-debug -L ci-core
+            ctest --preset x86-64-debug -R pony-doc-tests
+            ctest --preset x86-64-debug -R pony-lint-tests
+            ctest --preset x86-64-debug -R pony-lsp-tests
+            cmake --preset x86-64-release -DPONY_USES=${{env.PONY_USES}} -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DPONY_INSTALL_SYMLINKS=OFF
+            cmake --build --preset x86-64-release
+            ctest --preset x86-64-release -L ci-core
           EOF
 
       - name: Copy crash reports

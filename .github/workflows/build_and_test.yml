@@ -24,6 +24,8 @@ env:
   HAIKU_NIGHTLY_VERSION: hrev60037
   PONY_LLVM_LIBS_HREV: hrev60037
   PONY_USE_OS_LLVM: 'ON'
+  PRESET_DEBUG: 'x86-64-debug'
+  PRESET_RELEASE: 'x86-64-release'
 
 jobs:
   build:
@@ -207,16 +209,16 @@ jobs:
           ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
             set -e
             cd /Data/ponyc
-            cmake --preset x86-64-debug -DPONY_USES=${{env.PONY_USES}} -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
-            cmake --build --preset x86-64-debug
-            cmake --build --preset x86-64-debug --target pony-doc-tests pony-lint-tests pony-lsp-tests
-            ctest --preset x86-64-debug -L ci-core
-            ctest --preset x86-64-debug -R pony-doc-tests
-            ctest --preset x86-64-debug -R pony-lint-tests
-            ctest --preset x86-64-debug -R pony-lsp-tests
-            cmake --preset x86-64-release -DPONY_USES=${{env.PONY_USES}} -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DPONY_INSTALL_SYMLINKS=OFF
-            cmake --build --preset x86-64-release
-            ctest --preset x86-64-release -L ci-core
+            cmake --preset ${{env.PRESET_DEBUG}} -DPONY_USES=${{env.PONY_USES}} -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+            cmake --build --preset ${{env.PRESET_DEBUG}}
+            cmake --build --preset ${{env.PRESET_DEBUG}} --target pony-doc-tests pony-lint-tests pony-lsp-tests
+            ctest --preset ${{env.PRESET_DEBUG}} -L ci-core
+            ctest --preset ${{env.PRESET_DEBUG}} -R pony-doc-tests
+            ctest --preset ${{env.PRESET_DEBUG}} -R pony-lint-tests
+            ctest --preset ${{env.PRESET_DEBUG}} -R pony-lsp-tests
+            cmake --preset ${{env.PRESET_RELEASE}} -DPONY_USES=${{env.PONY_USES}} -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DPONY_INSTALL_SYMLINKS=OFF
+            cmake --build --preset ${{env.PRESET_RELEASE}}
+            ctest --preset ${{env.PRESET_RELEASE}} -L ci-core
           EOF
 
       - name: Copy crash reports
@@ -268,7 +270,7 @@ jobs:
             export BUILD_PREFIX=$BUILD_PREFIX
             mkdir -p "$BUILD_PREFIX"
             mkdir -p "$PACKAGE_DIR"
-            cmake --install "build/build_release" --prefix "$BUILD_PREFIX"
+            cmake --install "build_${{env.PRESET_RELEASE}}" --prefix "$BUILD_PREFIX"
             bash .ci-scripts/haiku/haiku-package.bash
             echo "Package built in $PACKAGE_DIR/$PACKAGE.hpkg"
             package list "$PACKAGE_DIR/$PACKAGE.hpkg"

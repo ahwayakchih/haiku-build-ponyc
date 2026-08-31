@@ -333,13 +333,13 @@ jobs:
 
   upload:
     runs-on: ubuntu-latest
-    needs: publish
+    needs: [ publish, haikuversions ]
     permissions:
       contents: write
 
     strategy:
       matrix:
-        haiku-version: ["${{ env.HAIKU_NIGHTLY_VERSION }}", "${{ env.HAIKU_LTS_VERSION }}"]
+        haiku-version: ["${{ needs.haikuversions.outputs.HAIKU_NIGHTLY_VERSION }}", "${{ needs.haikuversions.outputs.HAIKU_LTS_VERSION }}"]
         os-llvm: ['ON']
 
     name: Upload Haiku ${{ matrix.haiku-version }}, ${{ matrix.os-llvm == 'ON' && 'shared' || 'static' }} LLVM

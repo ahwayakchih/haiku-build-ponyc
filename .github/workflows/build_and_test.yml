@@ -28,10 +28,25 @@ env:
   PRESET_RELEASE: 'x86-64-release'
 
 jobs:
+  # Copy node version numbers found in env into output variables, that can be used in strategy matrixes.
+  haikuversions:
+    runs-on: ubuntu-latest
+    outputs:
+      HAIKU_LTS_VERSION: ${{ env.HAIKU_LTS_VERSION }}
+      HAIKU_NIGHTLY_VERSION: ${{ env.HAIKU_NIGHTLY_VERSION }}
+    steps:
+      - name: "Prepare Haiku versions for use in matrix"
+        run: |
+          echo "HAIKU_LTS_VERSION=${{ env.HAIKU_LTS_VERSION }}" >> $GITHUB_OUTPUT
+          echo "HAIKU_NIGHTLY_VERSION=${{ env.HAIKU_NIGHTLY_VERSION }}" >> $GITHUB_OUTPUT
+
   build:
+    # Env variables are not available for strategy matrix, so we need to depend on output variables.
+    needs: haikuversions
+
     strategy:
       matrix:
-        haiku-version: ["${{ env.HAIKU_NIGHTLY_VERSION }}", "${{ env.HAIKU_LTS_VERSION }}"]
+        haiku-version: ["${{ needs.haikuversions.outputs.HAIKU_NIGHTLY_VERSION }}", "${{ needs.haikuversions.outputs.HAIKU_LTS_VERSION }}"]
         os-llvm: ['ON']
 
     name: Build Haiku ${{ matrix.haiku-version }}, ${{ matrix.os-llvm == 'ON' && 'shared' || 'static' }} LLVM

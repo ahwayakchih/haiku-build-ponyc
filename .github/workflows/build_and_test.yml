@@ -22,19 +22,30 @@ concurrency:
 
 env:
   HAIKU_NIGHTLY_VERSION: hrev60037
+  HAIKU_LTS_VERSION: r1beta6
   PONY_LLVM_LIBS_HREV: hrev60037
-  PONY_USE_OS_LLVM: 'ON'
   PRESET_DEBUG: 'x86-64-debug'
   PRESET_RELEASE: 'x86-64-release'
 
 jobs:
   build:
+    strategy:
+      matrix:
+        haiku-version: ["${{ env.HAIKU_NIGHTLY_VERSION }}", "${{ env.HAIKU_LTS_VERSION }}"]
+        os-llvm: ['ON']
+
+    name: Build Haiku ${{ matrix.haiku-version }}, ${{ matrix.os-llvm == 'ON' && 'shared' || 'static' }} LLVM
+
     runs-on: ubuntu-latest
 
     outputs:
       VERSION: ${{ steps.buildsetup.outputs.VERSION }}
       PACKAGE: ${{ steps.buildsetup.outputs.PACKAGE }}
       PACKAGE_REVISION: ${{ steps.buildsetup.outputs.PACKAGE_REVISION }}
+
+    env:
+      HAIKU_VERSION: ${{ matrix.haiku-version }}
+      PONY_USE_OS_LLVM: ${{ matrix.os-llvm }}
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE
@@ -70,7 +81,11 @@ jobs:
           echo revision is $PACKAGE_REVISION
           echo PACKAGE_REVISION=$PACKAGE_REVISION >> $GITHUB_OUTPUT
 
-          export PACKAGE=ponyc-$VERSION-$PACKAGE_REVISION-x86_64
+          LLVM_INFO=
+          if [ "$PONY_USE_OS_LLVM" != "ON" ] ; then
+            LLVM_INFO="-static"
+          fi
+          export PACKAGE=ponyc-$VERSION-$PACKAGE_REVISION-$HAIKU_VERSION-x86_64$LLVM_INFO
           echo package is $PACKAGE
           echo PACKAGE=$PACKAGE >> $GITHUB_OUTPUT
 
@@ -105,7 +120,7 @@ jobs:
 
       - name: Create source for SYSTEM_TAG
         run: |
-          echo $HAIKU_NIGHTLY_VERSION >haiku_system_tag.source
+          echo $HAIKU_VERSION >haiku_system_tag.source
           sha256sum \
             ponyc/.ci-scripts/haiku/haiku-guest-installer.bash \
             ponyc/.ci-scripts/haiku/haiku-provision.bash \
@@ -121,7 +136,7 @@ jobs:
             ${{ format('{0}/vm-artifacts/haiku.iso', runner.temp) }}
             ${{ format('{0}/vm-artifacts/haiku_system.qcow2', runner.temp) }}
             haiku_vm_key*
-          key: ${{ format('{0}-{1}', env.HAIKU_NIGHTLY_VERSION, hashFiles('haiku_system_tag.source')) }}
+          key: ${{ format('{0}-{1}', env.HAIKU_VERSION, hashFiles('haiku_system_tag.source')) }}
 
       - name: Force reinstall by removing cached system disk
         if: ${{ inputs.force-install }}
@@ -224,16 +239,16 @@ jobs:
       - name: Copy crash reports
         if: ${{ always() }}
         run: |
-          mkdir -p ./crash-reports
+          mkdir -p "./crash-reports-$HAIKU_VERSION-$PONY_USE_OS_LLVM"
           rsync -avz -e "ssh -o StrictHostKeyChecking=no -i haiku_vm_key -p 2222" \
-            user@localhost:/boot/home/Desktop/*.report ./crash-reports/ \
+            user@localhost:/boot/home/Desktop/*.report "./crash-reports-$HAIKU_VERSION-$PONY_USE_OS_LLVM/" \
             || true
 
       - uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
-          name: crash-reports
-          path: ./crash-reports/*.report
+          name: crash-reports-${{ env.HAIKU_VERSION }}-OS_LLVM_${{ env.PONY_USE_OS_LLVM }}
+          path: ./crash-reports-${{ env.HAIKU_VERSION }}-${{ env.PONY_USE_OS_LLVM }}/*.report
           if-no-files-found: ignore
           overwrite: true
 
@@ -246,12 +261,12 @@ jobs:
       #       cmake --build --preset release
       #     EOF
 
-      - name: Package - prepare cache
+      - name: Package - setup cache
         id: package-cache
         uses: actions/cache@v6
         with:
           path: ${{ format('{0}.zip', steps.buildsetup.outputs.PACKAGE) }}
-          key: ${{ format('{0}-{1}', env.HAIKU_NIGHTLY_VERSION, steps.buildsetup.outputs.PACKAGE) }}
+          key: ${{ format('{0}', steps.buildsetup.outputs.PACKAGE) }}
 
       - name: Package - create
         env:
@@ -291,19 +306,65 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
-      - name: Restore package from cache
-        id: package-cache
-        uses: actions/cache@v6
-        with:
-          path: ${{ format('{0}.zip', needs.build.outputs.PACKAGE) }}
-          key: ${{ format('{0}-{1}', env.HAIKU_NIGHTLY_VERSION, needs.build.outputs.PACKAGE) }}
       - name: Publish
         if: ${{ steps.package-cache.outputs.cache-hit == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.build.outputs.VERSION }}
-          PACKAGE: ${{ needs.build.outputs.PACKAGE }}
           PACKAGE_REVISION: ${{ needs.build.outputs.PACKAGE_REVISION }}
         run: |
           gh release delete v$VERSION-$PACKAGE_REVISION -y --cleanup-tag || true
-          gh release create v$VERSION-$PACKAGE_REVISION --notes "Pony $VERSION, built on Haiku ${{ env.HAIKU_NIGHTLY_VERSION }}, x86_64" "$PACKAGE.zip"
+          gh release create v$VERSION-$PACKAGE_REVISION --notes "Pony $VERSION, build #$PACKAGE_REVISION for Haiku x86_64"
+
+  upload:
+    runs-on: ubuntu-latest
+    needs: publish
+    permissions:
+      contents: write
+
+    strategy:
+      matrix:
+        haiku-version: ["${{ env.HAIKU_NIGHTLY_VERSION }}", "${{ env.HAIKU_LTS_VERSION }}"]
+        os-llvm: ['ON']
+
+    name: Upload Haiku ${{ matrix.haiku-version }}, ${{ matrix.os-llvm == 'ON' && 'shared' || 'static' }} LLVM
+
+    env:
+      HAIKU_VERSION: ${{ matrix.haiku-version }}
+      PONY_USE_OS_LLVM: ${{ matrix.os-llvm }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: prepare PACKAGE name
+        id: package
+        env:
+          VERSION: ${{ needs.build.outputs.VERSION }}
+          PACKAGE_REVISION: ${{ needs.build.outputs.PACKAGE_REVISION }}
+        run: |
+          # WARNING: this HAS TO be in-sync with buildsetup step from build job
+
+          LLVM_INFO=
+          if [ "$PONY_USE_OS_LLVM" != "ON" ] ; then
+            LLVM_INFO="-static"
+          fi
+          export PACKAGE=ponyc-$VERSION-$PACKAGE_REVISION-$HAIKU_VERSION-x86_64$LLVM_INFO
+          echo package is $PACKAGE
+          echo PACKAGE=$PACKAGE >> $GITHUB_OUTPUT
+
+      - name: Restore package from cache
+        id: package-cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ format('{0}.zip', steps.package.outputs.PACKAGE) }}
+          key: ${{ format('{0}', steps.package.outputs.PACKAGE) }}
+
+      - name: Upload
+        if: ${{ steps.package-cache.outputs.cache-hit == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.build.outputs.VERSION }}
+          PACKAGE_REVISION: ${{ needs.build.outputs.PACKAGE_REVISION }}
+          PACKAGE: ${{ steps.package.outputs.PACKAGE }}
+        run: |
+          gh release upload v$VERSION-$PACKAGE_REVISION "$PACKAGE.zip"

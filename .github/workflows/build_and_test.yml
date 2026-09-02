@@ -21,9 +21,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  HAIKU_NIGHTLY_VERSION: hrev60037
+  HAIKU_NIGHTLY_VERSION: hrev60069
   HAIKU_LTS_VERSION: r1beta6
-  PONY_LLVM_LIBS_HREV: hrev60037
+  PONY_LLVM_LIBS_HREV: hrev60069
   PRESET_DEBUG: 'x86-64-debug'
   PRESET_RELEASE: 'x86-64-release'
 
@@ -45,9 +45,11 @@ jobs:
     needs: haikuversions
 
     strategy:
+      # WARNING: remember to keep this matrix in sync with the one for `upload` job
+      #          (that's being run after this one and `publish` jobs are done).
       matrix:
         haiku-version: ["${{ needs.haikuversions.outputs.HAIKU_NIGHTLY_VERSION }}", "${{ needs.haikuversions.outputs.HAIKU_LTS_VERSION }}"]
-        os-llvm: ['ON']
+        os-llvm: ['ON', 'OFF']
 
     name: Build Haiku ${{ matrix.haiku-version }}, ${{ matrix.os-llvm == 'ON' && 'shared' || 'static' }} LLVM
 
@@ -330,7 +332,7 @@ jobs:
     strategy:
       matrix:
         haiku-version: ["${{ needs.haikuversions.outputs.HAIKU_NIGHTLY_VERSION }}", "${{ needs.haikuversions.outputs.HAIKU_LTS_VERSION }}"]
-        os-llvm: ['ON']
+        os-llvm: ['ON', 'OFF']
 
     name: Upload Haiku ${{ matrix.haiku-version }}, ${{ matrix.os-llvm == 'ON' && 'shared' || 'static' }} LLVM
 

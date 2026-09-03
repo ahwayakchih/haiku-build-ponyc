@@ -45,6 +45,8 @@ jobs:
     needs: haikuversions
 
     strategy:
+      # Run 2 max at the same time to avoid overwriting VM caches
+      max-parallel: 2
       # WARNING: remember to keep this matrix in sync with the one for `upload` job
       #          (that's being run after this one and `publish` jobs are done).
       matrix:

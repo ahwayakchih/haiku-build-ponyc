@@ -63,7 +63,7 @@ jobs:
             ignore-failure: true
 
     name: Build Haiku ${{ matrix.haiku-version }}, ${{ matrix.os-llvm == 'ON' && 'shared' || 'static' }} LLVM
-    continue-on-error: ${{ ignore-failure }}
+    continue-on-error: ${{ matrix.ignore-failure }}
 
     runs-on: ubuntu-latest
 

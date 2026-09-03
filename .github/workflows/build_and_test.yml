@@ -45,15 +45,25 @@ jobs:
     needs: haikuversions
 
     strategy:
-      # Run 2 max at the same time to avoid overwriting VM caches
+      fail-fast: true
+      # Run 2 max at the same time to avoid overwriting VM caches.
+      # Keep this in sync with number of haiku-versions used in matrix.
       max-parallel: 2
       # WARNING: remember to keep this matrix in sync with the one for `upload` job
       #          (that's being run after this one and `publish` jobs are done).
       matrix:
-        os-llvm: ['ON', 'OFF']
+        ignore-failure: [false]
+        # Define variations first, so two different Haiku versions will be run at the same time.
+        # That's to avoid overwriting ISO and system disk caches
+        # (when two or more jobs for the same Haiku version are run at the same time).
+        os-llvm: ['ON']
         haiku-version: ["${{ needs.haikuversions.outputs.HAIKU_NIGHTLY_VERSION }}", "${{ needs.haikuversions.outputs.HAIKU_LTS_VERSION }}"]
+        include:
+          - os-llvm: 'OFF'
+            ignore-failure: true
 
     name: Build Haiku ${{ matrix.haiku-version }}, ${{ matrix.os-llvm == 'ON' && 'shared' || 'static' }} LLVM
+    continue-on-error: ${{ ignore-failure }}
 
     runs-on: ubuntu-latest
 
@@ -210,6 +220,7 @@ jobs:
       # It will build libs, but will not cache them, as that needs permission to store stuff in ghcr
       - name: Build libs
         if: ${{ steps.libs-cache.outputs.cache-hit != 'true' }}
+        timeout-minutes: 300
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LIBS_TAG: ${{ hashFiles('haiku_libs_tag.source') }}

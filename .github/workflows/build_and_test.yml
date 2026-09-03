@@ -60,6 +60,13 @@ jobs:
         haiku-version: ["${{ needs.haikuversions.outputs.HAIKU_NIGHTLY_VERSION }}", "${{ needs.haikuversions.outputs.HAIKU_LTS_VERSION }}"]
         include:
           - os-llvm: 'OFF'
+            haiku-version: ${{ needs.haikuversions.outputs.HAIKU_NIGHTLY_VERSION }}
+            ignore-failure: true
+          - os-llvm: 'OFF'
+            haiku-version: ${{ needs.haikuversions.outputs.HAIKU_LTS_VERSION }}
+            ignore-failure: true
+        exclude:
+          - os-llvm: 'ON'
             ignore-failure: true
 
     name: Build Haiku ${{ matrix.haiku-version }}, ${{ matrix.os-llvm == 'ON' && 'shared' || 'static' }} LLVM

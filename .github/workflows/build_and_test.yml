@@ -50,8 +50,8 @@ jobs:
       # WARNING: remember to keep this matrix in sync with the one for `upload` job
       #          (that's being run after this one and `publish` jobs are done).
       matrix:
-        haiku-version: ["${{ needs.haikuversions.outputs.HAIKU_NIGHTLY_VERSION }}", "${{ needs.haikuversions.outputs.HAIKU_LTS_VERSION }}"]
         os-llvm: ['ON', 'OFF']
+        haiku-version: ["${{ needs.haikuversions.outputs.HAIKU_NIGHTLY_VERSION }}", "${{ needs.haikuversions.outputs.HAIKU_LTS_VERSION }}"]
 
     name: Build Haiku ${{ matrix.haiku-version }}, ${{ matrix.os-llvm == 'ON' && 'shared' || 'static' }} LLVM
 
@@ -333,8 +333,8 @@ jobs:
 
     strategy:
       matrix:
-        haiku-version: ["${{ needs.haikuversions.outputs.HAIKU_NIGHTLY_VERSION }}", "${{ needs.haikuversions.outputs.HAIKU_LTS_VERSION }}"]
         os-llvm: ['ON', 'OFF']
+        haiku-version: ["${{ needs.haikuversions.outputs.HAIKU_NIGHTLY_VERSION }}", "${{ needs.haikuversions.outputs.HAIKU_LTS_VERSION }}"]
 
     name: Upload Haiku ${{ matrix.haiku-version }}, ${{ matrix.os-llvm == 'ON' && 'shared' || 'static' }} LLVM
 

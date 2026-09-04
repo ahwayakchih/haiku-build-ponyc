@@ -201,6 +201,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LIBS_TAG: ${{ hashFiles('haiku_libs_tag.source') }}
+          JOBS: ${{ env.PONY_USE_OS_LLVM == 'ON' && '4' || '1' }}
         run: bash ponyc/.ci-scripts/haiku/haiku-libs-cache.bash restore
 
       # Our own cache of libs

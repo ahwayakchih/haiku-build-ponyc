@@ -21,9 +21,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  HAIKU_NIGHTLY_VERSION: hrev60069
+  HAIKU_NIGHTLY_VERSION: hrev60080
   HAIKU_LTS_VERSION: r1beta6
-  PONY_LLVM_LIBS_HREV: hrev60069
+  PONY_LLVM_LIBS_HREV: hrev60080
   PRESET_DEBUG: 'x86-64-debug'
   PRESET_RELEASE: 'x86-64-release'
 
@@ -172,7 +172,7 @@ jobs:
             ${{ format('{0}/vm-artifacts/haiku.iso', runner.temp) }}
             ${{ format('{0}/vm-artifacts/haiku_system.qcow2', runner.temp) }}
             haiku_vm_key*
-          key: ${{ format('{0}-{1}', env.HAIKU_VERSION, hashFiles('haiku_system_tag.source')) }}
+          key: ${{ format('haiku-{0}-{1}', env.HAIKU_VERSION, hashFiles('haiku_system_tag.source')) }}
 
       - name: Force reinstall by removing cached system disk
         if: ${{ inputs.force-install }}
@@ -210,7 +210,7 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: libs.zip
-          key: ${{ hashFiles('haiku_libs_tag.source') }}
+          key: ${{ format('libs-{0}-{1}', env.HAIKU_VERSION, hashFiles('haiku_libs_tag.source')) }}
 
       # Our own restore of libs
       - name: Restore libs from libs.zip
@@ -228,7 +228,7 @@ jobs:
       # It will build libs, but will not cache them, as that needs permission to store stuff in ghcr
       - name: Build libs
         if: ${{ steps.libs-cache.outputs.cache-hit != 'true' }}
-        timeout-minutes: 300
+        timeout-minutes: 360
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LIBS_TAG: ${{ hashFiles('haiku_libs_tag.source') }}
@@ -396,3 +396,11 @@ jobs:
           PACKAGE: ${{ steps.package.outputs.PACKAGE }}
         run: |
           gh release upload v$VERSION-$PACKAGE_REVISION "$PACKAGE.zip"
+
+      - name: Delete cached package
+        if: ${{ steps.package-cache.outputs.cache-hit == 'true' && success() && !cancelled() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          KEY: ${{ format('{0}', steps.package.outputs.PACKAGE) }}
+        run: |
+          gh cache delete $KEY || true

@@ -174,7 +174,7 @@ jobs:
             ${{ format('{0}/vm-artifacts/haiku.iso', runner.temp) }}
             ${{ format('{0}/vm-artifacts/haiku_system.qcow2', runner.temp) }}
             haiku_vm_key*
-          key: ${{ format('haiku-{0}-{1}', env.HAIKU_VERSION, hashFiles('haiku_system_tag.source')) }}
+          key: ${{ format('haiku-{0}-shared_{1}-{2}', env.HAIKU_VERSION, env.PONY_USE_OS_LLVM, hashFiles('haiku_system_tag.source')) }}
 
       - name: Force reinstall by removing cached system disk
         if: ${{ inputs.force-install }}

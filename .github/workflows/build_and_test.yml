@@ -158,6 +158,7 @@ jobs:
       - name: Create source for SYSTEM_TAG
         run: |
           echo $HAIKU_VERSION >haiku_system_tag.source
+          echo $PONY_USE_OS_LLVM >>haiku_system_tag.source
           sha256sum \
             ponyc/.ci-scripts/haiku/haiku-guest-installer.bash \
             ponyc/.ci-scripts/haiku/haiku-provision.bash \

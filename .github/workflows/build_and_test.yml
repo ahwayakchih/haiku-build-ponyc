@@ -278,7 +278,7 @@ jobs:
           EOF
 
       - name: Copy crash reports
-        if: ${{ always() }}
+        if: ${{ always() && !cancelled() }}
         run: |
           mkdir -p "./crash-reports-$HAIKU_VERSION-$PONY_USE_OS_LLVM"
           rsync -avz -e "ssh -o StrictHostKeyChecking=no -i haiku_vm_key -p 2222" \
@@ -286,7 +286,7 @@ jobs:
             || true
 
       - uses: actions/upload-artifact@v7
-        if: ${{ always() }}
+        if: ${{ always() && !cancelled() }}
         with:
           name: crash-reports-${{ env.HAIKU_VERSION }}-OS_LLVM_${{ env.PONY_USE_OS_LLVM }}
           path: ./crash-reports-${{ env.HAIKU_VERSION }}-${{ env.PONY_USE_OS_LLVM }}/*.report

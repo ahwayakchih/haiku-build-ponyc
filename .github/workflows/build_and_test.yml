@@ -234,7 +234,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LIBS_TAG: ${{ hashFiles('haiku_libs_tag.source') }}
-          JOBS: ${{ (env.PONY_USE_OS_LLVM == 'ON' || env.HAIKU_VERSION != 'r1beta6') && '4' || '1' }}
+          JOBS: ${{ env.HAIKU_VERSION != 'r1beta6' && '4' || '1' }}
         # When off main and the libs aren't cached, build LLVM in the VM (hours)
         # and push it to the branch cache, so a re-dispatch reuses the build.
         run: bash ponyc/.ci-scripts/haiku/haiku-libs-cache.bash build-push-branch
@@ -261,7 +261,7 @@ jobs:
       - name: Build and test
         env:
           PONY_USES: ${{ env.PONY_USE_OS_LLVM == 'ON' && '-DPONY_USES=os_llvm' || '' }}
-          JOBS: ${{ (env.PONY_USE_OS_LLVM == 'ON' || env.HAIKU_VERSION != 'r1beta6') && '--parallel 4' || '--parallel 1' }}
+          JOBS: ${{ env.HAIKU_VERSION != 'r1beta6' && '--parallel 4' || '--parallel 1' }}
         run: |
           ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i haiku_vm_key -p 2222 user@localhost /bin/sh <<'EOF'
             set -e

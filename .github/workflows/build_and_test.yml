@@ -267,15 +267,15 @@ jobs:
             set -e
             cd /Data/ponyc
             cmake --preset ${{env.PRESET_DEBUG}} ${{env.PONY_USES}} -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
-            cmake --build --preset ${{env.PRESET_DEBUG}} ${{env.JOBS}}
-            cmake --build --preset ${{env.PRESET_DEBUG}} ${{env.JOBS}} --target pony-doc-tests pony-lint-tests pony-lsp-tests
-            ctest --preset ${{env.PRESET_DEBUG}} -L ci-core
+            timeout 1h cmake --build --preset ${{env.PRESET_DEBUG}} ${{env.JOBS}}
+            timeout 1h cmake --build --preset ${{env.PRESET_DEBUG}} ${{env.JOBS}} --target pony-doc-tests pony-lint-tests pony-lsp-tests
+            timeout 2h ctest --preset ${{env.PRESET_DEBUG}} -L ci-core
             ctest --preset ${{env.PRESET_DEBUG}} -R pony-doc-tests
             ctest --preset ${{env.PRESET_DEBUG}} -R pony-lint-tests
             ctest --preset ${{env.PRESET_DEBUG}} -R pony-lsp-tests
             cmake --preset ${{env.PRESET_RELEASE}} ${{env.PONY_USES}} -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DPONY_INSTALL_SYMLINKS=OFF
-            cmake --build --preset ${{env.PRESET_RELEASE}} ${{env.JOBS}}
-            ctest --preset ${{env.PRESET_RELEASE}} -L ci-core
+            timeout 1h cmake --build --preset ${{env.PRESET_RELEASE}} ${{env.JOBS}}
+            timeout 2h ctest --preset ${{env.PRESET_RELEASE}} -L ci-core
           EOF
 
       - name: Copy crash reports

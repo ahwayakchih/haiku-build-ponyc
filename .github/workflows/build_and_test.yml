@@ -296,12 +296,14 @@ jobs:
 
       - name: Package - setup cache
         id: package-cache
+        if: ${{ success() }}
         uses: actions/cache@v6
         with:
           path: ${{ format('{0}.zip', steps.buildsetup.outputs.PACKAGE) }}
           key: ${{ format('{0}', steps.buildsetup.outputs.PACKAGE) }}
 
       - name: Package - create
+        if: ${{ success() }}
         env:
           BUILD_PREFIX: /tmp/ponyc-build
           PACKAGE_DIR: /tmp/ponyc-pkg

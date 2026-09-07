@@ -385,7 +385,7 @@ jobs:
 
       - name: Restore package from cache
         id: package-cache
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: ${{ format('{0}.zip', steps.package.outputs.PACKAGE) }}
           key: ${{ format('{0}', steps.package.outputs.PACKAGE) }}

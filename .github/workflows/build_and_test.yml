@@ -165,13 +165,20 @@ jobs:
             ponyc/.ci-scripts/haiku/haiku_configure_vm.py \
             >>haiku_libs_tag.source
 
-      # Avoid burdening Haiku project by caching ISO and configured system disk
+      # Avoid burdening Haiku project
+      - name: Cache Haiku ISO
+        id: iso-cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ format('{0}/vm-artifacts/haiku.iso', runner.temp) }}
+          key: ${{ format('haiku-{0}.iso', env.HAIKU_VERSION) }}
+
+      # Avoid burdening Haiku project and speed up workflows
       - name: Restore Haiku system disk and ISO from our own cache
         id: haiku-cache
         uses: actions/cache/restore@v6
         with:
           path: |
-            ${{ format('{0}/vm-artifacts/haiku.iso', runner.temp) }}
             ${{ format('{0}/vm-artifacts/haiku_system.qcow2', runner.temp) }}
             haiku_vm_key*
           key: ${{ format('haiku-{0}-shared_{1}-{2}', env.HAIKU_VERSION, env.PONY_USE_OS_LLVM, hashFiles('haiku_system_tag.source')) }}
@@ -186,12 +193,11 @@ jobs:
           export GITHUB_WORKSPACE=${GITHUB_WORKSPACE}/ponyc
           bash ponyc/.ci-scripts/haiku/haiku-provision.bash
 
-      - name: Store Haiku ISO and system disk in our own cache
+      - name: Store Haiku system disk in our own cache
         if: ${{ inputs.force-install || steps.haiku-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v6
         with:
           path: |
-            ${{ format('{0}/vm-artifacts/haiku.iso', runner.temp) }}
             ${{ format('{0}/vm-artifacts/haiku_system.qcow2', runner.temp) }}
             haiku_vm_key*
           key: ${{ steps.haiku-cache.outputs.cache-primary-key }}
@@ -237,7 +243,7 @@ jobs:
           JOBS: ${{ env.HAIKU_VERSION != 'r1beta6' && '4' || '1' }}
         # When off main and the libs aren't cached, build LLVM in the VM (hours)
         # and push it to the branch cache, so a re-dispatch reuses the build.
-        run: bash ponyc/.ci-scripts/haiku/haiku-libs-cache.bash build-push-branch
+        run: timeout 5h bash ponyc/.ci-scripts/haiku/haiku-libs-cache.bash build-push-branch
 
       # We keep our own libs cache
       - name: Cache libs

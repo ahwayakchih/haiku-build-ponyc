@@ -168,7 +168,7 @@ jobs:
       # Avoid burdening Haiku project
       - name: Cache Haiku ISO
         id: iso-cache
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: ${{ format('{0}/vm-artifacts/haiku.iso', runner.temp) }}
           key: ${{ format('haiku-{0}.iso', env.HAIKU_VERSION) }}
@@ -201,6 +201,13 @@ jobs:
             ${{ format('{0}/vm-artifacts/haiku_system.qcow2', runner.temp) }}
             haiku_vm_key*
           key: ${{ steps.haiku-cache.outputs.cache-primary-key }}
+
+      - name: Store Haiku ISO in our own cache
+        if: ${{ always() && steps.iso-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ format('{0}/vm-artifacts/haiku.iso', runner.temp) }}
+          key: ${{ steps.iso-cache.outputs.cache-primary-key }}
 
       # This step is from ponyc's workflow
       # It will not restore anything, but tests to see if haiku-libs-cache.bash does not crash

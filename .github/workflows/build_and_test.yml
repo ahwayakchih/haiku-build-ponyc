@@ -416,10 +416,13 @@ jobs:
         run: |
           gh release upload v$VERSION-$PACKAGE_REVISION "$PACKAGE.zip"
 
-      - name: Delete cached package
-        if: ${{ steps.package-cache.outputs.cache-hit == 'true' && success() && !cancelled() }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          KEY: ${{ format('{0}', steps.package.outputs.PACKAGE) }}
-        run: |
-          gh cache delete $KEY || true
+      # This needs `actions: write` permission
+      # See: https://docs.github.com/en/rest/actions/cache?apiVersion=2022-11-28#delete-a-github-actions-cache-for-a-repository-using-a-cache-id
+      # TODO: move it to yet another job that will depend on this one and run matrix to delete cached package files.
+      # - name: Delete cached package
+      #   if: ${{ steps.package-cache.outputs.cache-hit == 'true' && success() && !cancelled() }}
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     KEY: ${{ format('{0}', steps.package.outputs.PACKAGE) }}
+      #   run: |
+      #     gh cache delete $KEY || true

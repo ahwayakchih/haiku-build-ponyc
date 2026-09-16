@@ -166,7 +166,7 @@ jobs:
             >>haiku_libs_tag.source
 
       # Avoid burdening Haiku project
-      - name: Cache Haiku ISO
+      - name: Restore Haiku ISO from our own cache
         id: iso-cache
         uses: actions/cache/restore@v6
         with:
@@ -174,7 +174,7 @@ jobs:
           key: ${{ format('haiku-{0}.iso', env.HAIKU_VERSION) }}
 
       # Avoid burdening Haiku project and speed up workflows
-      - name: Restore Haiku system disk and ISO from our own cache
+      - name: Restore Haiku system disk from our own cache
         id: haiku-cache
         uses: actions/cache/restore@v6
         with:

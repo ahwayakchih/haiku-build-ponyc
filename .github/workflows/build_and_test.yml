@@ -54,17 +54,23 @@ jobs:
         # That's to avoid overwriting ISO and system disk caches
         # (when two or more jobs for the same Haiku version are run at the same time).
         os-llvm: ['ON']
-        haiku-version: ["${{ needs.haikuversions.outputs.HAIKU_NIGHTLY_VERSION }}", "${{ needs.haikuversions.outputs.HAIKU_LTS_VERSION }}"]
+        haiku-version: ["${{ needs.haikuversions.outputs.HAIKU_NIGHTLY_VERSION }}"]
         include:
           - os-llvm: 'OFF'
             haiku-version: ${{ needs.haikuversions.outputs.HAIKU_NIGHTLY_VERSION }}
             ignore-failure: true
-          - os-llvm: 'OFF'
+          # - os-llvm: 'OFF'
+          #   haiku-version: ${{ needs.haikuversions.outputs.HAIKU_LTS_VERSION }}
+          #   ignore-failure: true
+          - os-llvm: 'ON'
             haiku-version: ${{ needs.haikuversions.outputs.HAIKU_LTS_VERSION }}
             ignore-failure: true
         exclude:
           - os-llvm: 'ON'
+            haiku-version: ${{ needs.haikuversions.outputs.HAIKU_NIGHTLY_VERSION }}
             ignore-failure: true
+          - os-llvm: 'OFF'
+            ignore-failure: false
 
     name: Build Haiku ${{ matrix.haiku-version }}, ${{ matrix.os-llvm == 'ON' && 'shared' || 'static' }} LLVM
     continue-on-error: ${{ matrix.ignore-failure }}

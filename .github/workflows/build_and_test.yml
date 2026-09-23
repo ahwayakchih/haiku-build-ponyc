@@ -17,10 +17,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  HAIKU_NIGHTLY_VERSION: hrev60130
+  HAIKU_NIGHTLY_VERSION: hrev60147
   HAIKU_LTS_VERSION: r1beta6
   # We don't really need to rebuild whole LLVM for every version of Haiku nightly.
-  PONY_LLVM_NIGHTLY_VERSION: hrev60130
+  PONY_LLVM_NIGHTLY_VERSION: hrev60147
   PRESET_DEBUG: 'x86-64-debug'
   PRESET_RELEASE: 'x86-64-release'
 
@@ -293,13 +293,29 @@ jobs:
             cmake --preset ${{env.PRESET_DEBUG}} ${{env.PONY_USES}} -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
             timeout 30m cmake --build --preset ${{env.PRESET_DEBUG}} ${{env.JOBS}}
             timeout 30m cmake --build --preset ${{env.PRESET_DEBUG}} ${{env.JOBS}} --target pony-doc-tests pony-lint-tests pony-lsp-tests
+
+            export PONY_STDLIB_TEST_EXCLUDES="--exclude=net/"
             timeout 90m ctest --preset ${{env.PRESET_DEBUG}} -L ci-core
+
+            export PONY_STDLIB_TEST_EXCLUDES="--only=net/"
+            timeout 15m ctest --preset ${{env.PRESET_DEBUG}} -R stdlib-debug || true
+
+            export PONY_STDLIB_TEST_EXCLUDES="--only=net/"
+            timeout 15m ctest --preset ${{env.PRESET_DEBUG}} -R stdlib-release || true
+
+            export PONY_STDLIB_TEST_EXCLUDES=""
             ctest --preset ${{env.PRESET_DEBUG}} -R pony-doc-tests
             ctest --preset ${{env.PRESET_DEBUG}} -R pony-lint-tests
             ctest --preset ${{env.PRESET_DEBUG}} -R pony-lsp-tests
+
             cmake --preset ${{env.PRESET_RELEASE}} ${{env.PONY_USES}} -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DPONY_INSTALL_SYMLINKS=OFF
             timeout 30m cmake --build --preset ${{env.PRESET_RELEASE}} ${{env.JOBS}}
+
+            export PONY_STDLIB_TEST_EXCLUDES="--exclude=net/"
             timeout 90m ctest --preset ${{env.PRESET_RELEASE}} -L ci-core
+
+            export PONY_STDLIB_TEST_EXCLUDES="--only=net/"
+            timeout 15m ctest --preset ${{env.PRESET_RELEASE}} -R stdlib-release || true
           EOF
 
       - name: Copy crash reports

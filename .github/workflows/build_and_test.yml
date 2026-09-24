@@ -198,7 +198,7 @@ jobs:
         env:
           # When using shared LLVM, we can use more cores, otherwise even 12G RAM may be not enough.
           SMP: ${{ env.PONY_USE_OS_LLVM == 'ON' && '4' || '2' }}
-          RAM: ${{ env.PONY_USE_OS_LLVM == 'ON' && '8G' || '12G' }}
+          RAM: 12G
         run: |
           set -e
           export GITHUB_WORKSPACE=${GITHUB_WORKSPACE}/ponyc

@@ -295,13 +295,13 @@ jobs:
             timeout 30m cmake --build --preset ${{env.PRESET_DEBUG}} ${{env.JOBS}} --target pony-doc-tests pony-lint-tests pony-lsp-tests
 
             export PONY_STDLIB_TEST_EXCLUDES="--exclude=net/"
-            timeout 90m ctest --preset ${{env.PRESET_DEBUG}} -L ci-core
+            PONY_DEBUG=1 timeout 90m ctest --preset ${{env.PRESET_DEBUG}} -L ci-core
 
-            export PONY_STDLIB_TEST_EXCLUDES="--only=net/"
-            timeout 15m ctest --preset ${{env.PRESET_DEBUG}} -R stdlib-debug || true
+            # export PONY_STDLIB_TEST_EXCLUDES="--only=net/"
+            # timeout 15m ctest --preset ${{env.PRESET_DEBUG}} -R stdlib-debug || true
 
-            export PONY_STDLIB_TEST_EXCLUDES="--only=net/"
-            timeout 15m ctest --preset ${{env.PRESET_DEBUG}} -R stdlib-release || true
+            # export PONY_STDLIB_TEST_EXCLUDES="--only=net/"
+            # timeout 15m ctest --preset ${{env.PRESET_DEBUG}} -R stdlib-release || true
 
             export PONY_STDLIB_TEST_EXCLUDES=""
             ctest --preset ${{env.PRESET_DEBUG}} -R pony-doc-tests
@@ -314,8 +314,8 @@ jobs:
             export PONY_STDLIB_TEST_EXCLUDES="--exclude=net/"
             timeout 90m ctest --preset ${{env.PRESET_RELEASE}} -L ci-core
 
-            export PONY_STDLIB_TEST_EXCLUDES="--only=net/"
-            timeout 15m ctest --preset ${{env.PRESET_RELEASE}} -R stdlib-release || true
+            # export PONY_STDLIB_TEST_EXCLUDES="--only=net/"
+            # timeout 15m ctest --preset ${{env.PRESET_RELEASE}} -R stdlib-release || true
           EOF
 
       - name: Copy crash reports

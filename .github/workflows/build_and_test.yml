@@ -169,7 +169,7 @@ jobs:
             ponyc/.ci-scripts/haiku/haiku-guest-installer.bash \
             ponyc/.ci-scripts/haiku/haiku-provision.bash \
             ponyc/.ci-scripts/haiku/haiku_configure_vm.py \
-            >>haiku_libs_tag.source
+            >>haiku_system_tag.source
 
       # Avoid burdening Haiku project
       - name: Restore Haiku ISO from our own cache

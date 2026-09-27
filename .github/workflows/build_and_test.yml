@@ -17,10 +17,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  HAIKU_NIGHTLY_VERSION: hrev60147
+  HAIKU_NIGHTLY_VERSION: hrev60160
   HAIKU_LTS_VERSION: r1beta6
   # We don't really need to rebuild whole LLVM for every version of Haiku nightly.
-  PONY_LLVM_NIGHTLY_VERSION: hrev60147
+  PONY_LLVM_NIGHTLY_VERSION: hrev60160
   PRESET_DEBUG: 'x86-64-debug'
   PRESET_RELEASE: 'x86-64-release'
 

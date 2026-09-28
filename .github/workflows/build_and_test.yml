@@ -234,9 +234,11 @@ jobs:
       - name: Restore libs.zip from our own cache
         id: libs-cache
         uses: actions/cache/restore@v6
+        env:
+          LIBS_OS_VERSION: ${{ startsWith('hrev', env.HAIKU_VERSION) && env.PONY_LLVM_NIGHTLY_VERSION || env.HAIKU_VERSION }}
         with:
           path: libs.zip
-          key: ${{ format('libs-{0}-{1}', env.HAIKU_VERSION, hashFiles('haiku_libs_tag.source')) }}
+          key: ${{ format('libs-{0}-{1}', env.LIBS_OS_VERSION, hashFiles('haiku_libs_tag.source')) }}
 
       # Our own restore of libs
       - name: Restore libs from libs.zip
